@@ -6,9 +6,21 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
+
+	"github.com/atsushi-h/go-todo/pkg/db"
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("❌ .env の読み込みに失敗しました")
+	}
+
+	_, err := db.Connect()
+	if err != nil {
+		log.Fatalf("❌ DB接続失敗: %v", err)
+	}
+
 	r := chi.NewRouter()
 
 	// /api/health エンドポイント
