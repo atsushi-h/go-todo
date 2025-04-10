@@ -13,21 +13,5 @@ services:
     ports:
       - "5432:5432"
 
-  api:
-    build: .
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=password
-      - DB_NAME=tododb
-    volumes:
-      - .:/app
-    working_dir: /app
-
 volumes:
   postgres_data:
