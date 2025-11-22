@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"go-todo/database"
 	"go-todo/handler"
 	"go-todo/repository"
 	"go-todo/router"
@@ -12,6 +13,18 @@ import (
 )
 
 func main() {
+	// DBの初期化
+	db, err := database.Init()
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+	defer database.Close(db)
+	// DBのヘルスチェック
+	if err := database.HealthCheck(db); err != nil {
+		log.Fatal("Database health check failed:", err)
+	}
+	log.Println("Database connected successfully.")
+
 	// リポジトリの初期化
 	todoRepo := repository.NewTodoRepository()
 
