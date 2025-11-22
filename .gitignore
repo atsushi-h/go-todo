@@ -1,0 +1,25 @@
+# 環境設定
+.env
+.env.local
+
+# ビルド成果物
+app/tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# テストカバレッジ
+*.out
+coverage.txt
+
+# IDEの設定（プロジェクトによる）
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db

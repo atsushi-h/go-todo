@@ -1,0 +1,40 @@
+services:
+  server:
+    container_name: ${BACKEND_CONTAINER_NAME}
+    build:
+      context: .
+      dockerfile: ./app/Dockerfile
+    tty: true
+    depends_on:
+      - db
+    volumes:
+      - ./app:/app
+      - /etc/localtime:/etc/localtime:ro # タイムゾーンを日本時刻に設定
+    ports:
+      - ${BACKEND_PORT}:${BACKEND_CONTAINER_PORT}
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - "TZ=Asia/Tokyo" # タイムゾーンを日本時刻に設定
+
+  db:
+    container_name: ${POSTGRES_HOST}
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - "TZ=Asia/Tokyo" # タイムゾーンを日本時刻に設定
+    image: postgres:18.1-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d  #initial data
+    ports:
+      - ${POSTGRES_PORT}:5432
+
+volumes:
+  postgres_data:
