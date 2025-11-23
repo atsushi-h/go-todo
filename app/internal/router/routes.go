@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"go-todo/handler"
+	"go-todo/internal/handler"
 )
 
 // ルーターにルートを設定

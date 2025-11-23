@@ -3,7 +3,7 @@ package repository
 import (
 	"errors"
 
-	"go-todo/model"
+	"go-todo/internal/model"
 	"gorm.io/gorm"
 )
 

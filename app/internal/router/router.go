@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"go-todo/util"
+	"go-todo/internal/util"
 )
 
 // ルート定義

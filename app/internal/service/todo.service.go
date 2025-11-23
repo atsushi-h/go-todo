@@ -3,8 +3,8 @@ package service
 import (
 	"errors"
 
-	"go-todo/model"
-	"go-todo/repository"
+	"go-todo/internal/model"
+	"go-todo/internal/repository"
 )
 
 // Service層のエラー定義

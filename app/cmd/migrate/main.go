@@ -3,8 +3,8 @@ package main
 import (
     "flag"
     "log"
-    
-    "go-todo/database"
+
+    "go-todo/internal/database"
 )
 
 func main() {

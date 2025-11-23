@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/http"
 
-	"go-todo/database"
-	"go-todo/handler"
-	"go-todo/repository"
-	"go-todo/router"
-	"go-todo/service"
+	"go-todo/internal/database"
+	"go-todo/internal/handler"
+	"go-todo/internal/repository"
+	"go-todo/internal/router"
+	"go-todo/internal/service"
 )
 
 func main() {

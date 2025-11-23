@@ -1,6 +1,6 @@
 package router
 
-import "go-todo/handler"
+import "go-todo/internal/handler"
 
 // SetupTodoRoutes はTodo関連のルートを設定
 func SetupTodoRoutes(r *Router, todoHandler *handler.TodoHandler) {

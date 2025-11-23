@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"go-todo/model"
-	"go-todo/service"
-	"go-todo/util"
+	"go-todo/internal/model"
+	"go-todo/internal/service"
+	"go-todo/internal/util"
 )
 
 // パスパラメータを取得（util.GetParamのエイリアス）

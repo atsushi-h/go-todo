@@ -2,8 +2,8 @@ package database
 
 import (
     "log"
-    
-    "go-todo/model"
+
+    "go-todo/internal/model"
     "gorm.io/gorm"
 )
 
