@@ -26,7 +26,7 @@ func main() {
 	log.Println("Database connected successfully.")
 
 	// リポジトリの初期化
-	todoRepo := repository.NewTodoRepository()
+	todoRepo := repository.NewTodoRepository(db)
 
 	// サービスの初期化
 	todoService := service.NewTodoService(todoRepo)

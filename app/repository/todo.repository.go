@@ -2,109 +2,111 @@ package repository
 
 import (
 	"errors"
-	"sync"
-	"time"
 
 	"go-todo/model"
+	"gorm.io/gorm"
 )
+
+type TodoRepository interface {
+    GetAll() ([]*model.Todo, error)
+    GetByID(id uint) (*model.Todo, error)
+    Create(title, description string) (*model.Todo, error)
+    Update(id uint, title *string, description *string, completed *bool) (*model.Todo, error)
+    Delete(id uint) error
+}
+
+type todoRepository struct {
+    db *gorm.DB
+}
+
+func NewTodoRepository(db *gorm.DB) TodoRepository {
+    return &todoRepository{db: db}
+}
 
 var (
 	ErrTodoNotFound = errors.New("todo not found")
 )
 
-// Todoのデータアクセスを管理
-type TodoRepository struct {
-	mu      sync.RWMutex
-	todos   map[int]*model.Todo
-	nextID  int
-}
-
-// 新しいTodoRepositoryを作成
-func NewTodoRepository() *TodoRepository {
-	return &TodoRepository{
-		todos:  make(map[int]*model.Todo),
-		nextID: 1,
-	}
-}
-
 // 全てのTodoを取得
-func (r *TodoRepository) GetAll() []*model.Todo {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *todoRepository) GetAll() ([]*model.Todo, error) {
+	var todos []*model.Todo
 
-	todos := make([]*model.Todo, 0, len(r.todos))
-	for _, todo := range r.todos {
-		todos = append(todos, todo)
-	}
-	return todos
+    if err := r.db.Order("created_at DESC").Find(&todos).Error; err != nil {
+        return nil, err
+    }
+
+    return todos, nil
 }
 
 // 指定されたIDのTodoを取得
-func (r *TodoRepository) GetByID(id int) (*model.Todo, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *todoRepository) GetByID(id uint) (*model.Todo, error) {
+    var todo model.Todo
 
-	todo, exists := r.todos[id]
-	if !exists {
-		return nil, ErrTodoNotFound
-	}
-	return todo, nil
+    if err := r.db.First(&todo, id).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, ErrTodoNotFound
+        }
+        return nil, err
+    }
+
+    return &todo, nil
 }
 
 // 新しいTodoを作成
-func (r *TodoRepository) Create(title, description string) *model.Todo {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *todoRepository) Create(title, description string) (*model.Todo, error) {
+    todo := &model.Todo{
+        Title:       title,
+        Description: description,
+        Completed:   false,
+    }
+    
+    if err := r.db.Create(todo).Error; err != nil {
+        return nil, err
+    }
 
-	now := time.Now()
-	todo := &model.Todo{
-		ID:          r.nextID,
-		Title:       title,
-		Description: description,
-		Completed:   false,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}
-
-	r.todos[r.nextID] = todo
-	r.nextID++
-
-	return todo
+    return todo, nil
 }
 
 // 既存のTodoを更新
-func (r *TodoRepository) Update(id int, title *string, description *string, completed *bool) (*model.Todo, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (r *todoRepository) Update(id uint, title *string, description *string, completed *bool) (*model.Todo, error) {
+    var todo model.Todo
 
-	todo, exists := r.todos[id]
-	if !exists {
-		return nil, ErrTodoNotFound
-	}
+    // レコードの存在確認
+    if err := r.db.First(&todo, id).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            return nil, ErrTodoNotFound
+        }
+        return nil, err
+    }
 
-	if title != nil {
-		todo.Title = *title
-	}
-	if description != nil {
-		todo.Description = *description
-	}
-	if completed != nil {
-		todo.Completed = *completed
-	}
-	todo.UpdatedAt = time.Now()
+    // 更新データの準備
+    updates := make(map[string]interface{})
+    if title != nil {
+        updates["title"] = *title
+    }
+    if description != nil {
+        updates["description"] = *description
+    }
+    if completed != nil {
+        updates["completed"] = *completed
+    }
 
-	return todo, nil
+    // 更新実行
+    if err := r.db.Model(&todo).Updates(updates).Error; err != nil {
+        return nil, err
+    }
+
+    return &todo, nil
 }
 
 // 指定されたIDのTodoを削除
-func (r *TodoRepository) Delete(id int) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if _, exists := r.todos[id]; !exists {
-		return ErrTodoNotFound
-	}
-
-	delete(r.todos, id)
-	return nil
+func (r *todoRepository) Delete(id uint) error {
+    result := r.db.Delete(&model.Todo{}, id)
+    if result.Error != nil {
+        return result.Error
+    }
+    if result.RowsAffected == 0 {
+        return ErrTodoNotFound
+    }
+    return nil
 }

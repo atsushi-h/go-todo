@@ -15,6 +15,12 @@ dcd-dev:
 backend-ssh:
 	docker exec -it ${BACKEND_CONTAINER_NAME} sh
 
+# データベースマイグレーション関連
+# マイグレーション実行
+migrate:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go run cmd/migrate/main.go -action=migrate"
+reset:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go run cmd/migrate/main.go -action=reset"
 
 # ローカル開発用
 # go library install

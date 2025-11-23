@@ -41,12 +41,13 @@ func (h *TodoHandler) ListTodos(w http.ResponseWriter, r *http.Request) {
 // 指定されたIDのTodoを取得
 func (h *TodoHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := getParam(r, "id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
+	idInt, err := strconv.Atoi(idStr)
+	if err != nil || idInt < 0 {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
+	id := uint(idInt)
 	todo, err := h.service.GetTodoByID(id)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
@@ -85,12 +86,13 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 // 既存のTodoを更新
 func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := getParam(r, "id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
+	idInt, err := strconv.Atoi(idStr)
+	if err != nil || idInt < 0 {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
+	id := uint(idInt)
 	var req model.UpdateTodoRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -113,11 +115,13 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 // 指定されたIDのTodoを削除
 func (h *TodoHandler) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := getParam(r, "id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
+	idInt, err := strconv.Atoi(idStr)
+	if err != nil || idInt < 0 {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
+
+	id := uint(idInt)
 
 	if err := h.service.DeleteTodo(id); err != nil {
 		if err == service.ErrTodoNotFound {
