@@ -3,12 +3,24 @@
 .env.local
 
 # ビルド成果物
-app/tmp/
+apps/api/tmp/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
+# Node.js / Turborepo
+node_modules/
+.turbo/
+.pnpm-store/
+dist/
+build/
+.next/
+out/
+*.log
+apps/*/node_modules/
+packages/*/node_modules/
 
 # テストカバレッジ
 *.out

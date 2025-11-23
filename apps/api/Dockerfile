@@ -4,7 +4,7 @@ RUN mkdir /app
 
 WORKDIR /app
 
-COPY /app /app
+COPY apps/api /app
 
 RUN go mod tidy && \
     go install github.com/cosmtrek/air@v1.46.0 && \

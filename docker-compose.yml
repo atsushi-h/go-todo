@@ -3,12 +3,12 @@ services:
     container_name: ${BACKEND_CONTAINER_NAME}
     build:
       context: .
-      dockerfile: ./app/Dockerfile
+      dockerfile: ./apps/api/Dockerfile
     tty: true
     depends_on:
       - db
     volumes:
-      - ./app:/app
+      - ./apps/api:/app
       - /etc/localtime:/etc/localtime:ro # タイムゾーンを日本時刻に設定
     ports:
       - ${BACKEND_PORT}:${BACKEND_CONTAINER_PORT}

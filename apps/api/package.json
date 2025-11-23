@@ -1,0 +1,11 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "make -C ../.. dcb-dev",
+    "dev": "make -C ../.. dcu-dev",
+    "test": "make -C ../.. test",
+    "lint": "make -C ../.. lint"
+  }
+}
