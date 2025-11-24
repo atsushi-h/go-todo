@@ -32,3 +32,8 @@ test:
 	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go test -v ./..."
 lint:
 	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "staticcheck ./..."
+
+## OpenAPI YAML生成
+openapi:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "cd /app && swag init -g cmd/server/main.go -o docs --outputTypes yaml"
+	mv /Users/atsushi-h/workspace/go-todo/apps/api/docs/swagger.yaml /Users/atsushi-h/workspace/go-todo/apps/api/docs/openapi.yaml

@@ -12,6 +12,11 @@ import (
 	"go-todo/internal/service"
 )
 
+// @title Todo API
+// @version 0.0.0
+// @description A simple Todo API built with Go and PostgreSQL
+// @host localhost:4000
+// @BasePath /
 func main() {
 	// DBの初期化
 	db, err := database.Init()

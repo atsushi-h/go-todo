@@ -25,7 +25,14 @@ func SetupRoutes(r *Router, todoHandler *handler.TodoHandler) {
 	r.SetNotFound(handleNotFound)
 }
 
-// ホームページハンドラー
+// handleHome godoc
+// @Summary API information
+// @Description Get API information including name and version
+// @Tags general
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Router / [get]
 func handleHome(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
@@ -34,7 +41,14 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ヘルスチェックハンドラー
+// handleHealth godoc
+// @Summary Health check
+// @Description Check if the API is running
+// @Tags general
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Router /health [get]
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
