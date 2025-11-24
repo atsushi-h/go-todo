@@ -1,52 +1,49 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
-	"time"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/extra/bundebug"
 )
 
-func Init() (*gorm.DB, error) {
+func Init() (*bun.DB, error) {
 	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Tokyo",
-		os.Getenv("POSTGRES_HOST"),
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable&timezone=Asia/Tokyo",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_DB"),
+		os.Getenv("POSTGRES_HOST"),
 		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_DB"),
 	)
 
-	config := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-		NowFunc: func() time.Time {
-			loc, _ := time.LoadLocation("Asia/Tokyo")
-			return time.Now().In(loc)
-		},
-	}
+	// PostgreSQL connector
+	connector := pgdriver.NewConnector(pgdriver.WithDSN(dsn))
+	sqldb := sql.OpenDB(connector)
 
-	db, err := gorm.Open(postgres.Open(dsn), config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
-	}
+	// Bun DB with PostgreSQL dialect
+	db := bun.NewDB(sqldb, pgdialect.New())
+
+	// Add query hook for debugging (optional, can be removed in production)
+	db.AddQueryHook(bundebug.NewQueryHook(
+		bundebug.WithVerbose(true),
+		bundebug.FromEnv("BUNDEBUG"),
+	))
 
 	return db, nil
 }
 
 // データベース接続の確認
-func HealthCheck(db *gorm.DB) error {
-	sqlDB, err := db.DB()
-	if err != nil {
-		return err
-	}
+func HealthCheck(db *bun.DB) error {
+	sqlDB := db.DB
 	return sqlDB.Ping()
 }
 
 // DBを閉じる
-func Close(db *gorm.DB) error {
-    sqlDB, _ := db.DB()
-    return sqlDB.Close()
+func Close(db *bun.DB) error {
+	return db.Close()
 }

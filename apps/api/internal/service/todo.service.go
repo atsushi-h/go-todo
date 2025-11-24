@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 
 	"go-todo/internal/model"
@@ -23,8 +24,8 @@ func NewTodoService(repo repository.TodoRepository) *TodoService {
 }
 
 // 全てのTodoを取得
-func (s *TodoService) GetAllTodos() ([]*model.Todo, error) {
-    todos, err := s.repo.GetAll()
+func (s *TodoService) GetAllTodos(ctx context.Context) ([]*model.Todo, error) {
+    todos, err := s.repo.GetAll(ctx)
     if err != nil {
         return nil, err
 	}
@@ -32,8 +33,8 @@ func (s *TodoService) GetAllTodos() ([]*model.Todo, error) {
 }
 
 // 指定されたIDのTodoを取得
-func (s *TodoService) GetTodoByID(id uint) (*model.Todo, error) {
-	todo, err := s.repo.GetByID(id)
+func (s *TodoService) GetTodoByID(ctx context.Context, id uint) (*model.Todo, error) {
+	todo, err := s.repo.GetByID(ctx, id)
 	if err == repository.ErrTodoNotFound {
 		return nil, ErrTodoNotFound
 	}
@@ -41,8 +42,8 @@ func (s *TodoService) GetTodoByID(id uint) (*model.Todo, error) {
 }
 
 // 新しいTodoを作成
-func (s *TodoService) CreateTodo(req model.CreateTodoRequest) (*model.Todo, error) {
-    todo, err := s.repo.Create(req.Title, req.Description)
+func (s *TodoService) CreateTodo(ctx context.Context, req model.CreateTodoRequest) (*model.Todo, error) {
+    todo, err := s.repo.Create(ctx, req.Title, req.Description)
     if err != nil {
         return nil, err
     }
@@ -50,8 +51,8 @@ func (s *TodoService) CreateTodo(req model.CreateTodoRequest) (*model.Todo, erro
 }
 
 // 既存のTodoを更新
-func (s *TodoService) UpdateTodo(id uint, req model.UpdateTodoRequest) (*model.Todo, error) {
-	todo, err := s.repo.Update(id, req.Title, req.Description, req.Completed)
+func (s *TodoService) UpdateTodo(ctx context.Context, id uint, req model.UpdateTodoRequest) (*model.Todo, error) {
+	todo, err := s.repo.Update(ctx, id, req.Title, req.Description, req.Completed)
 	if err == repository.ErrTodoNotFound {
 		return nil, ErrTodoNotFound
 	}
@@ -59,8 +60,8 @@ func (s *TodoService) UpdateTodo(id uint, req model.UpdateTodoRequest) (*model.T
 }
 
 // 指定されたIDのTodoを削除
-func (s *TodoService) DeleteTodo(id uint) error {
-	err := s.repo.Delete(id)
+func (s *TodoService) DeleteTodo(ctx context.Context, id uint) error {
+	err := s.repo.Delete(ctx, id)
 	if err == repository.ErrTodoNotFound {
 		return ErrTodoNotFound
 	}

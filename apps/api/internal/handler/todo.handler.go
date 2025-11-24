@@ -37,7 +37,7 @@ func NewTodoHandler(service *service.TodoService) *TodoHandler {
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos [get]
 func (h *TodoHandler) ListTodos(w http.ResponseWriter, r *http.Request) {
-	todos, err := h.service.GetAllTodos()
+	todos, err := h.service.GetAllTodos(r.Context())
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -67,7 +67,7 @@ func (h *TodoHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := uint(idInt)
-	todo, err := h.service.GetTodoByID(id)
+	todo, err := h.service.GetTodoByID(r.Context(), id)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
 			http.Error(w, "Todo not found", http.StatusNotFound)
@@ -102,7 +102,7 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todo, err := h.service.CreateTodo(req)
+	todo, err := h.service.CreateTodo(r.Context(), req)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -140,7 +140,7 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todo, err := h.service.UpdateTodo(id, req)
+	todo, err := h.service.UpdateTodo(r.Context(), id, req)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
 			http.Error(w, "Todo not found", http.StatusNotFound)
@@ -175,7 +175,7 @@ func (h *TodoHandler) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 
 	id := uint(idInt)
 
-	if err := h.service.DeleteTodo(id); err != nil {
+	if err := h.service.DeleteTodo(r.Context(), id); err != nil {
 		if err == service.ErrTodoNotFound {
 			http.Error(w, "Todo not found", http.StatusNotFound)
 			return
