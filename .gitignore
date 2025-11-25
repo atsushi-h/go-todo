@@ -35,3 +35,7 @@ coverage.txt
 # OS生成ファイル
 .DS_Store
 Thumbs.db
+
+# atlas関連
+apps/api/schema-gen.sql
+.atlas/

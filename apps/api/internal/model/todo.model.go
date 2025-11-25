@@ -4,12 +4,12 @@ import "time"
 
 // Todo構造体
 type Todo struct {
-    ID          uint      `json:"id" gorm:"primaryKey"`
-    Title       string    `json:"title" gorm:"not null"`
+    ID          uint      `json:"id" bun:",pk,autoincrement"`
+    Title       string    `json:"title" bun:",notnull"`
     Description string    `json:"description"`
-    Completed   bool      `json:"completed" gorm:"default:false"`
-    CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
-    UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+    Completed   bool      `json:"completed" bun:",default:false"`
+    CreatedAt   time.Time `json:"created_at" bun:",nullzero,notnull,default:current_timestamp"`
+    UpdatedAt   time.Time `json:"updated_at" bun:",nullzero,notnull,default:current_timestamp"`
 }
 
 // Todo作成リクエストの構造体
