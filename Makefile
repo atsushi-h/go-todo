@@ -16,11 +16,64 @@ backend-ssh:
 	docker exec -it ${BACKEND_CONTAINER_NAME} sh
 
 # データベースマイグレーション関連
-# マイグレーション実行
-migrate:
-	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go run cmd/migrate/main.go -action=migrate"
-reset:
-	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go run cmd/migrate/main.go -action=reset"
+# デフォルトの環境を設定
+ATLAS_ENV ?= local
+
+# スキーマSQLを生成（Goモデルから）
+schema-generate:
+	docker exec -i $(BACKEND_CONTAINER_NAME) go run cmd/schema/main.go
+
+# マイグレーションの差分ファイルを生成
+# 使用例: make migrate-diff NAME=create_todos
+migrate-diff:
+	@if [ -z "$(NAME)" ]; then \
+		echo "❌ Error: NAME is required. Usage: make migrate-diff NAME=migration_name"; \
+		exit 1; \
+	fi
+	docker exec -i $(BACKEND_CONTAINER_NAME) \
+		atlas migrate diff $(NAME) \
+		--env $(ATLAS_ENV) \
+		--config file://atlas.hcl
+
+# マイグレーションを適用
+migrate-apply:
+	docker exec -i $(BACKEND_CONTAINER_NAME) \
+		atlas migrate apply \
+		--env $(ATLAS_ENV) \
+		--config file://atlas.hcl
+
+# マイグレーション状態を確認
+migrate-status:
+	docker exec -i $(BACKEND_CONTAINER_NAME) \
+		atlas migrate status \
+		--env $(ATLAS_ENV) \
+		--config file://atlas.hcl
+
+# マイグレーション履歴を検証
+migrate-validate:
+	docker exec -i $(BACKEND_CONTAINER_NAME) \
+		atlas migrate validate \
+		--env $(ATLAS_ENV) \
+		--config file://atlas.hcl
+
+# 初回セットアップ（スキーマ生成 + 初回マイグレーション作成）
+migrate-init:
+	@echo "📋 Generating schema-gen.sql..."
+	@$(MAKE) schema-generate
+	@echo "📝 Creating initial migration..."
+	@$(MAKE) migrate-diff NAME=init
+	@echo "✅ Migration initialized. Run 'make migrate-apply' to apply."
+
+# atlas_dev データベースを作成
+create-atlas-dev-db:
+	docker exec -i go_todo_db psql -U user -d postgres -c "CREATE DATABASE atlas_dev;"
+
+# マイグレーションをロールバック（1つ前に戻す）
+migrate-down:
+	docker exec -i $(BACKEND_CONTAINER_NAME) \
+		atlas migrate down \
+		--env $(ATLAS_ENV) \
+		--config file://atlas.hcl
 
 # ローカル開発用
 # go library install
