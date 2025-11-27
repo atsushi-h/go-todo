@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/gob"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +11,12 @@ import (
 	"github.com/rbcervilla/redisstore/v9"
 	"github.com/redis/go-redis/v9"
 )
+
+// パッケージ読み込み時にuint型をgobに登録する
+// セッションにuint型のユーザーIDを保存するために必要
+func init() {
+	gob.Register(uint(0))
+}
 
 const (
 	SessionName = "go_todo_session"
