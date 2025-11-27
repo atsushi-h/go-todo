@@ -6,7 +6,8 @@ services:
       dockerfile: ./apps/api/Dockerfile
     tty: true
     depends_on:
-      - db
+      - postgres
+      - redis
     volumes:
       - ./apps/api:/app
       - /etc/localtime:/etc/localtime:ro # タイムゾーンを日本時刻に設定
@@ -20,9 +21,15 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - OAUTH_CALLBACK_URL=${OAUTH_CALLBACK_URL}
       - "TZ=Asia/Tokyo" # タイムゾーンを日本時刻に設定
 
-  db:
+  postgres:
     container_name: ${POSTGRES_HOST}
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
@@ -36,5 +43,14 @@ services:
     ports:
       - ${POSTGRES_PORT}:5432
 
+  redis:
+    container_name: ${REDIS_HOST}
+    image: redis:8.4-alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT}:6379"
+
 volumes:
   postgres_data:
+  redis_data:
