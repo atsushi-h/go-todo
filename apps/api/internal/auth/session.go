@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/rbcervilla/redisstore/v9"
 	"github.com/redis/go-redis/v9"
@@ -37,18 +36,6 @@ func NewSessionManager() (*SessionManager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create redis store: %w", err)
 	}
-
-	// SESSION_SECRETでCookieの署名キーを設定
-    sessionSecret := os.Getenv("SESSION_SECRET")
-    if sessionSecret == "" {
-        return nil, fmt.Errorf("SESSION_SECRET is required")
-    }
-
-	// 署名キーを設定
-	store.KeyGen(securecookie.GenerateRandomKey)  // これはセッションID生成（オプション）
-
-	// Cookieの署名・暗号化キーを設定
-	store.Codecs(securecookie.CodecsFromPairs([]byte(sessionSecret))...)
 
 	// session_　プリフィックスを設定
 	store.KeyPrefix("session_")
