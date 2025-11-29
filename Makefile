@@ -75,6 +75,14 @@ migrate-down:
 		--env $(ATLAS_ENV) \
 		--config file://atlas.hcl
 
+# シードを実行
+seed:
+	docker exec -i $(BACKEND_CONTAINER_NAME) go run cmd/seed/main.go
+
+# データをクリアしてシード（fresh）
+seed-fresh:
+	docker exec -i $(BACKEND_CONTAINER_NAME) go run cmd/seed/main.go -fresh
+
 # ローカル開発用
 # go library install
 ## 複数のライブラリを指定する場合は、name="xxx yyy" のように""で囲んで実行すること
