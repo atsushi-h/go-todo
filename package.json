@@ -6,12 +6,14 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "lefthook install",
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
     "lint": "turbo lint"
   },
   "devDependencies": {
+    "lefthook": "2.0.4",
     "turbo": "2.6.1"
   },
   "packageManager": "pnpm@10.20.0",
