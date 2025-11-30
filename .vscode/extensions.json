@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "shd101wyy.markdown-preview-enhanced",
+    "anthropic.claude-code",
+    "golang.go",
+    "hverlin.mise-vscode"
+  ]
+}
