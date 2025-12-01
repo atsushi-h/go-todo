@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "generate:api": "orval --config ./src/api/orval.config.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "5.90.11",
+    "axios": "1.13.2",
     "next": "16.0.5",
     "react": "19.2.0",
     "react-dom": "19.2.0"
@@ -21,6 +24,7 @@
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
+    "orval": "7.17.0",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   }
