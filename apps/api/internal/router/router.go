@@ -18,9 +18,10 @@ type Route struct {
 
 // カスタムルーター
 type Router struct {
-	routes      []*Route
-	middlewares []Middleware
-	notFound    http.HandlerFunc
+	routes            []*Route
+	middlewares       []Middleware
+	globalMiddlewares []Middleware // ルートマッチング前に適用されるミドルウェア
+	notFound          http.HandlerFunc
 }
 
 // ミドルウェア関数の型
@@ -81,9 +82,14 @@ func (rt *Router) DELETE(pattern string, handler http.HandlerFunc) {
 	rt.Handle(http.MethodDelete, pattern, handler)
 }
 
-// ミドルウェアを追加
+// ミドルウェアを追加（ルートマッチング後に適用）
 func (rt *Router) Use(middleware Middleware) {
 	rt.middlewares = append(rt.middlewares, middleware)
+}
+
+// グローバルミドルウェアを追加（ルートマッチング前に適用、CORS等に使用）
+func (rt *Router) UseGlobal(middleware Middleware) {
+	rt.globalMiddlewares = append(rt.globalMiddlewares, middleware)
 }
 
 // 404ハンドラーを設定
@@ -93,42 +99,52 @@ func (rt *Router) SetNotFound(handler http.HandlerFunc) {
 
 // http.Handlerインターフェースを実装
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
+	// グローバルミドルウェアでラップした内部ハンドラーを作成
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
 
-	// ルートをマッチング
-	for _, route := range rt.routes {
-		// メソッドチェック
-		if route.Method != r.Method {
-			continue
-		}
-
-		// パスマッチング
-		matches := route.Pattern.FindStringSubmatch(path)
-		if matches == nil {
-			continue
-		}
-
-		// パラメータをコンテキストに格納
-		if len(route.Params) > 0 {
-			ctx := r.Context()
-			for i, param := range route.Params {
-				ctx = context.WithValue(ctx, util.ContextKey(param), matches[i+1])
+		// ルートをマッチング
+		for _, route := range rt.routes {
+			// メソッドチェック
+			if route.Method != r.Method {
+				continue
 			}
-			r = r.WithContext(ctx)
+
+			// パスマッチング
+			matches := route.Pattern.FindStringSubmatch(path)
+			if matches == nil {
+				continue
+			}
+
+			// パラメータをコンテキストに格納
+			if len(route.Params) > 0 {
+				ctx := r.Context()
+				for i, param := range route.Params {
+					ctx = context.WithValue(ctx, util.ContextKey(param), matches[i+1])
+				}
+				r = r.WithContext(ctx)
+			}
+
+			// ルートミドルウェアを適用
+			h := route.Handler
+			for i := len(rt.middlewares) - 1; i >= 0; i-- {
+				h = rt.middlewares[i](h)
+			}
+
+			h(w, r)
+			return
 		}
 
-		// ミドルウェアを適用
-		handler := route.Handler
-		for i := len(rt.middlewares) - 1; i >= 0; i-- {
-			handler = rt.middlewares[i](handler)
-		}
+		// マッチするルートが見つからない
+		rt.notFound(w, r)
+	})
 
-		handler(w, r)
-		return
+	// グローバルミドルウェアを適用
+	for i := len(rt.globalMiddlewares) - 1; i >= 0; i-- {
+		handler = rt.globalMiddlewares[i](handler)
 	}
 
-	// マッチするルートが見つからない
-	rt.notFound(w, r)
+	handler(w, r)
 }
 
 // パスパラメータを取得（util.GetParamのエイリアス）

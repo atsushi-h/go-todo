@@ -28,9 +28,9 @@ coverage.txt
 
 # IDEの設定（プロジェクトによる）
 .idea/
-.vscode/
 *.swp
 *.swo
+.vscode/settings.json
 
 # OS生成ファイル
 .DS_Store
