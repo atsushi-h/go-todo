@@ -9,10 +9,12 @@ import (
 
 // ルーターにルートを設定
 func SetupRoutes(r *Router, todoHandler *handler.TodoHandler) {
-	// ミドルウェアを設定
+	// グローバルミドルウェアを設定（ルートマッチング前に適用）
+	r.UseGlobal(CORSMiddleware)
+
+	// ミドルウェアを設定（ルートマッチング後に適用）
 	r.Use(RecoveryMiddleware)
 	r.Use(LoggingMiddleware)
-	r.Use(CORSMiddleware)
 
 	// 共通ルート定義
 	r.GET("/", handleHome)
