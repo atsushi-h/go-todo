@@ -1,15 +1,10 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 
-declare const API_URL: string
-const baseURL = API_URL
-
-// httpOnly Cookie使用時は型ガードは不要
-// トークンはCookieで管理され、クライアント側でアクセスしない
+const baseURL = process.env.NEXT_PUBLIC_API_URL
 
 const axiosInstance = axios.create({
   baseURL,
   timeout: 30000,
-  withCredentials: true, // httpOnly Cookieを含むリクエストを有効化
   headers: {
     'Content-Type': 'application/json',
   },
