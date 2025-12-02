@@ -20,8 +20,8 @@ func main() {
 	// Todoテーブルのスキーマ生成
 	sql += generateCreateTableSQL(db, (*model.Todo)(nil))
 	
-	// 今後モデルが増えたらここに追加
-	// sql += generateCreateTableSQL(db, (*model.User)(nil))
+	// Userテーブルのスキーマ生成
+	sql += generateCreateTableSQL(db, (*model.User)(nil))
 	
 	// schema-gen.sqlに出力
 	err := os.WriteFile("schema-gen.sql", []byte(sql), 0644)
