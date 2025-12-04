@@ -20,7 +20,7 @@ backend-ssh:
 ATLAS_ENV ?= local
 
 # スキーマSQLを生成（Goモデルから）
-schema-generate:
+generate-schema:
 	docker exec -i $(BACKEND_CONTAINER_NAME) go run cmd/schema/main.go
 
 # マイグレーションの差分ファイルを生成
