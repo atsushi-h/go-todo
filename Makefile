@@ -20,7 +20,7 @@ backend-ssh:
 ATLAS_ENV ?= local
 
 # スキーマSQLを生成（Goモデルから）
-schema-generate:
+generate-schema:
 	docker exec -i $(BACKEND_CONTAINER_NAME) go run cmd/schema/main.go
 
 # マイグレーションの差分ファイルを生成
@@ -67,6 +67,12 @@ migrate-init:
 # atlas_dev データベースを作成
 create-atlas-dev-db:
 	docker exec -i go_todo_db psql -U user -d postgres -c "CREATE DATABASE atlas_dev;"
+
+# マイグレーションファイルのハッシュを再計算
+migrate-hash:
+	docker exec -i $(BACKEND_CONTAINER_NAME) \
+		atlas migrate hash \
+		--config file://atlas.hcl
 
 # マイグレーションをロールバック（1つ前に戻す）
 migrate-down:

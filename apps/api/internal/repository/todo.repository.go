@@ -11,11 +11,11 @@ import (
 )
 
 type TodoRepository interface {
-	GetAll(ctx context.Context) ([]*model.Todo, error)
-	GetByID(ctx context.Context, id uint) (*model.Todo, error)
-	Create(ctx context.Context, title, description string) (*model.Todo, error)
-	Update(ctx context.Context, id uint, title *string, description *string, completed *bool) (*model.Todo, error)
-	Delete(ctx context.Context, id uint) error
+	GetAll(ctx context.Context, userID uint) ([]*model.Todo, error)
+	GetByID(ctx context.Context, id uint, userID uint) (*model.Todo, error)
+	Create(ctx context.Context, title, description string, userID uint) (*model.Todo, error)
+	Update(ctx context.Context, id uint, userID uint, title *string, description *string, completed *bool) (*model.Todo, error)
+	Delete(ctx context.Context, id uint, userID uint) error
 }
 
 type todoRepository struct {
@@ -31,11 +31,12 @@ var (
 )
 
 // 全てのTodoを取得
-func (r *todoRepository) GetAll(ctx context.Context) ([]*model.Todo, error) {
+func (r *todoRepository) GetAll(ctx context.Context, userID uint) ([]*model.Todo, error) {
 	var todos []*model.Todo
 
 	if err := r.db.NewSelect().
 		Model(&todos).
+		Where("user_id = ?", userID).
 		Order("created_at DESC").
 		Scan(ctx); err != nil {
 		return nil, err
@@ -45,12 +46,13 @@ func (r *todoRepository) GetAll(ctx context.Context) ([]*model.Todo, error) {
 }
 
 // 指定されたIDのTodoを取得
-func (r *todoRepository) GetByID(ctx context.Context, id uint) (*model.Todo, error) {
+func (r *todoRepository) GetByID(ctx context.Context, id uint, userID uint) (*model.Todo, error) {
 	todo := new(model.Todo)
 
 	if err := r.db.NewSelect().
 		Model(todo).
 		Where("id = ?", id).
+		Where("user_id = ?", userID).
 		Scan(ctx); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrTodoNotFound
@@ -62,11 +64,12 @@ func (r *todoRepository) GetByID(ctx context.Context, id uint) (*model.Todo, err
 }
 
 // 新しいTodoを作成
-func (r *todoRepository) Create(ctx context.Context, title, description string) (*model.Todo, error) {
+func (r *todoRepository) Create(ctx context.Context, title, description string, userID uint) (*model.Todo, error) {
 	todo := &model.Todo{
 		Title:       title,
 		Description: description,
 		Completed:   false,
+		UserID:      userID,
 	}
 
 	if _, err := r.db.NewInsert().
@@ -79,9 +82,9 @@ func (r *todoRepository) Create(ctx context.Context, title, description string) 
 }
 
 // 既存のTodoを更新
-func (r *todoRepository) Update(ctx context.Context, id uint, title *string, description *string, completed *bool) (*model.Todo, error) {
+func (r *todoRepository) Update(ctx context.Context, id uint, userID uint, title *string, description *string, completed *bool) (*model.Todo, error) {
 	// レコードの存在確認
-	todo, err := r.GetByID(ctx, id)
+	todo, err := r.GetByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -109,10 +112,11 @@ func (r *todoRepository) Update(ctx context.Context, id uint, title *string, des
 }
 
 // 指定されたIDのTodoを削除
-func (r *todoRepository) Delete(ctx context.Context, id uint) error {
+func (r *todoRepository) Delete(ctx context.Context, id uint, userID uint) error {
 	result, err := r.db.NewDelete().
 		Model((*model.Todo)(nil)).
 		Where("id = ?", id).
+		Where("user_id = ?", userID).
 		Exec(ctx)
 
 	if err != nil {

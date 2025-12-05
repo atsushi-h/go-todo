@@ -56,7 +56,7 @@ func main() {
 
 	// ルーターの初期化
 	r := router.NewRouter()
-	router.SetupRoutes(r, todoHandler)
+	router.SetupRoutes(r, todoHandler, sessionManager)
 	router.SetupAuthRoutes(r, authHandler, sessionManager)
 
 	// サーバー起動
