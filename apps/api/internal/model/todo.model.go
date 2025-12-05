@@ -4,12 +4,13 @@ import "time"
 
 // Todo構造体
 type Todo struct {
-    ID          uint      `json:"id" bun:",pk,autoincrement"`
-    Title       string    `json:"title" bun:",notnull"`
-    Description string    `json:"description"`
-    Completed   bool      `json:"completed" bun:",default:false"`
-    CreatedAt   time.Time `json:"created_at" bun:",nullzero,notnull,default:current_timestamp"`
-    UpdatedAt   time.Time `json:"updated_at" bun:",nullzero,notnull,default:current_timestamp"`
+	ID          uint      `json:"id" bun:",pk,autoincrement"`
+	Title       string    `json:"title" bun:",notnull"`
+	Description string    `json:"description"`
+	Completed   bool      `json:"completed" bun:",default:false"`
+	CreatedAt   time.Time `json:"created_at" bun:",nullzero,notnull,default:current_timestamp"`
+	UpdatedAt   time.Time `json:"updated_at" bun:",nullzero,notnull,default:current_timestamp"`
+	UserID      uint      `json:"user_id" bun:",notnull"`
 }
 
 // Todo作成リクエストの構造体

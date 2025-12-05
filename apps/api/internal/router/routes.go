@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"go-todo/internal/auth"
 	"go-todo/internal/handler"
 )
 
 // ルーターにルートを設定
-func SetupRoutes(r *Router, todoHandler *handler.TodoHandler) {
+func SetupRoutes(r *Router, todoHandler *handler.TodoHandler, sm *auth.SessionManager) {
 	// グローバルミドルウェアを設定（ルートマッチング前に適用）
 	r.UseGlobal(CORSMiddleware)
 
@@ -21,7 +22,7 @@ func SetupRoutes(r *Router, todoHandler *handler.TodoHandler) {
 	r.GET("/health", handleHealth)
 
 	// Todo関連のルート（todo.route.goに分離）
-	SetupTodoRoutes(r, todoHandler)
+	SetupTodoRoutes(r, todoHandler, sm)
 
 	// 404カスタムハンドラー
 	r.SetNotFound(handleNotFound)

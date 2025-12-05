@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"go-todo/internal/auth"
 	"go-todo/internal/model"
 	"go-todo/internal/service"
 	"go-todo/internal/util"
@@ -37,7 +38,13 @@ func NewTodoHandler(service *service.TodoService) *TodoHandler {
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos [get]
 func (h *TodoHandler) ListTodos(w http.ResponseWriter, r *http.Request) {
-	todos, err := h.service.GetAllTodos(r.Context())
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	todos, err := h.service.GetAllTodos(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -59,6 +66,12 @@ func (h *TodoHandler) ListTodos(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos/{id} [get]
 func (h *TodoHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	idStr := getParam(r, "id")
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil || idInt < 0 {
@@ -67,7 +80,7 @@ func (h *TodoHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := uint(idInt)
-	todo, err := h.service.GetTodoByID(r.Context(), id)
+	todo, err := h.service.GetTodoByID(r.Context(), id, userID)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
 			http.Error(w, "Todo not found", http.StatusNotFound)
@@ -92,6 +105,12 @@ func (h *TodoHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos [post]
 func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req model.CreateTodoRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -102,7 +121,7 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todo, err := h.service.CreateTodo(r.Context(), req)
+	todo, err := h.service.CreateTodo(r.Context(), req, userID)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -126,6 +145,12 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos/{id} [put]
 func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	idStr := getParam(r, "id")
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil || idInt < 0 {
@@ -140,7 +165,7 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	todo, err := h.service.UpdateTodo(r.Context(), id, req)
+	todo, err := h.service.UpdateTodo(r.Context(), id, userID, req)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
 			http.Error(w, "Todo not found", http.StatusNotFound)
@@ -166,6 +191,12 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos/{id} [delete]
 func (h *TodoHandler) DeleteTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := auth.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	idStr := getParam(r, "id")
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil || idInt < 0 {
@@ -175,7 +206,7 @@ func (h *TodoHandler) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 
 	id := uint(idInt)
 
-	if err := h.service.DeleteTodo(r.Context(), id); err != nil {
+	if err := h.service.DeleteTodo(r.Context(), id, userID); err != nil {
 		if err == service.ErrTodoNotFound {
 			http.Error(w, "Todo not found", http.StatusNotFound)
 			return
