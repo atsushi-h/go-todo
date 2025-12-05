@@ -68,6 +68,12 @@ migrate-init:
 create-atlas-dev-db:
 	docker exec -i go_todo_db psql -U user -d postgres -c "CREATE DATABASE atlas_dev;"
 
+# マイグレーションファイルのハッシュを再計算
+migrate-hash:
+	docker exec -i $(BACKEND_CONTAINER_NAME) \
+		atlas migrate hash \
+		--config file://atlas.hcl
+
 # マイグレーションをロールバック（1つ前に戻す）
 migrate-down:
 	docker exec -i $(BACKEND_CONTAINER_NAME) \
