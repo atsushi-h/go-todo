@@ -1,20 +1,15 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"go-todo/internal/auth"
 	"go-todo/internal/model"
 	"go-todo/internal/service"
-	"go-todo/internal/util"
-)
 
-// パスパラメータを取得（util.GetParamのエイリアス）
-func getParam(r *http.Request, name string) string {
-	return util.GetParam(r, name)
-}
+	"github.com/labstack/echo/v4"
+)
 
 // TodoのHTTPハンドラー
 type TodoHandler struct {
@@ -37,20 +32,18 @@ func NewTodoHandler(service *service.TodoService) *TodoHandler {
 // @Success 200 {array} model.Todo
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos [get]
-func (h *TodoHandler) ListTodos(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserIDFromContext(r.Context())
+func (h *TodoHandler) ListTodos(c echo.Context) error {
+	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	todos, err := h.service.GetAllTodos(r.Context(), userID)
+	todos, err := h.service.GetAllTodos(c.Request().Context(), userID)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
 	}
 
-	json.NewEncoder(w).Encode(todos)
+	return c.JSON(http.StatusOK, todos)
 }
 
 // GetTodo godoc
@@ -65,32 +58,28 @@ func (h *TodoHandler) ListTodos(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {string} string "Todo not found"
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos/{id} [get]
-func (h *TodoHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserIDFromContext(r.Context())
+func (h *TodoHandler) GetTodo(c echo.Context) error {
+	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	idStr := getParam(r, "id")
+	idStr := c.Param("id")
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil || idInt < 0 {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
 	}
 
 	id := uint(idInt)
-	todo, err := h.service.GetTodoByID(r.Context(), id, userID)
+	todo, err := h.service.GetTodoByID(c.Request().Context(), id, userID)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
-			http.Error(w, "Todo not found", http.StatusNotFound)
-			return
+			return echo.NewHTTPError(http.StatusNotFound, "Todo not found")
 		}
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
 	}
 
-	json.NewEncoder(w).Encode(todo)
+	return c.JSON(http.StatusOK, todo)
 }
 
 // CreateTodo godoc
@@ -104,31 +93,26 @@ func (h *TodoHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {string} string "Invalid request body or title is required"
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos [post]
-func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserIDFromContext(r.Context())
+func (h *TodoHandler) CreateTodo(c echo.Context) error {
+	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
 	var req model.CreateTodoRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 	if req.Title == "" {
-		http.Error(w, "Title is required", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Title is required")
 	}
 
-	todo, err := h.service.CreateTodo(r.Context(), req, userID)
+	todo, err := h.service.CreateTodo(c.Request().Context(), req, userID)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(todo)
+	return c.JSON(http.StatusCreated, todo)
 }
 
 // UpdateTodo godoc
@@ -144,38 +128,33 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {string} string "Todo not found"
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos/{id} [put]
-func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserIDFromContext(r.Context())
+func (h *TodoHandler) UpdateTodo(c echo.Context) error {
+	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	idStr := getParam(r, "id")
+	idStr := c.Param("id")
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil || idInt < 0 {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
 	}
 
 	id := uint(idInt)
 	var req model.UpdateTodoRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
-	todo, err := h.service.UpdateTodo(r.Context(), id, userID, req)
+	todo, err := h.service.UpdateTodo(c.Request().Context(), id, userID, req)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
-			http.Error(w, "Todo not found", http.StatusNotFound)
-			return
+			return echo.NewHTTPError(http.StatusNotFound, "Todo not found")
 		}
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
 	}
 
-	json.NewEncoder(w).Encode(todo)
+	return c.JSON(http.StatusOK, todo)
 }
 
 // DeleteTodo godoc
@@ -190,30 +169,26 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {string} string "Todo not found"
 // @Failure 500 {string} string "Internal server error"
 // @Router /todos/{id} [delete]
-func (h *TodoHandler) DeleteTodo(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserIDFromContext(r.Context())
+func (h *TodoHandler) DeleteTodo(c echo.Context) error {
+	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	idStr := getParam(r, "id")
+	idStr := c.Param("id")
 	idInt, err := strconv.Atoi(idStr)
 	if err != nil || idInt < 0 {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
 	}
 
 	id := uint(idInt)
 
-	if err := h.service.DeleteTodo(r.Context(), id, userID); err != nil {
+	if err := h.service.DeleteTodo(c.Request().Context(), id, userID); err != nil {
 		if err == service.ErrTodoNotFound {
-			http.Error(w, "Todo not found", http.StatusNotFound)
-			return
+			return echo.NewHTTPError(http.StatusNotFound, "Todo not found")
 		}
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	return c.NoContent(http.StatusNoContent)
 }

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"go-todo/internal/auth"
 	"go-todo/internal/service"
 
+	"github.com/labstack/echo/v4"
 	"github.com/markbates/goth/gothic"
 )
 
@@ -24,68 +24,66 @@ func NewAuthHandler(userService *service.UserService, sm *auth.SessionManager) *
 	}
 }
 
-func (h *AuthHandler) BeginAuth(w http.ResponseWriter, r *http.Request) {
-	gothic.BeginAuthHandler(w, r)
+func (h *AuthHandler) BeginAuth(c echo.Context) error {
+	// providerをリクエストに設定
+	auth.SetProviderToRequest(c)
+
+	gothic.BeginAuthHandler(c.Response(), c.Request())
+	return nil
 }
 
-func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
-	gothUser, err := gothic.CompleteUserAuth(w, r)
+func (h *AuthHandler) Callback(c echo.Context) error {
+	// providerをリクエストに設定
+	auth.SetProviderToRequest(c)
+
+	gothUser, err := gothic.CompleteUserAuth(c.Response(), c.Request())
 	if err != nil {
 		log.Printf("Authentication failed: %v", err)
-		http.Error(w, "Authentication failed", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Authentication failed")
 	}
 
-	user, err := h.userService.FindOrCreateFromOAuth(r.Context(), gothUser)
+	user, err := h.userService.FindOrCreateFromOAuth(c.Request().Context(), gothUser)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
-		http.Error(w, "Failed to create user", http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user")
 	}
 
 	// SessionManagerを使用
-	if err := h.sessionManager.SetUserID(w, r, user.ID); err != nil {
+	if err := h.sessionManager.SetUserID(c.Response(), c.Request(), user.ID); err != nil {
 		log.Printf("Failed to save session: %v", err)
-		http.Error(w, "Failed to save session", http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to save session")
 	}
 
 	// リダイレクト先のフロントエンドURLを環境変数から取得
 	frontendURL := os.Getenv("FRONTEND_URL")
-    if frontendURL == "" {
+	if frontendURL == "" {
 		log.Printf("Server configuration error: FRONTEND_URL is not set")
-        http.Error(w, "Server configuration error", http.StatusInternalServerError)
-        return
-    }
+		return echo.NewHTTPError(http.StatusInternalServerError, "Server configuration error")
+	}
 
-	http.Redirect(w, r, frontendURL, http.StatusTemporaryRedirect)
+	return c.Redirect(http.StatusTemporaryRedirect, frontendURL)
 }
 
-func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	if err := h.sessionManager.Clear(w, r); err != nil {
+func (h *AuthHandler) Logout(c echo.Context) error {
+	if err := h.sessionManager.Clear(c.Response(), c.Request()); err != nil {
 		log.Printf("Failed to clear session: %v", err)
-		http.Error(w, "Failed to clear session", http.StatusInternalServerError)
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to clear session")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Logged out"})
+	return c.JSON(http.StatusOK, map[string]string{"message": "Logged out"})
 }
 
-func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
-	userID, ok := auth.GetUserIDFromContext(r.Context())
+func (h *AuthHandler) Me(c echo.Context) error {
+	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	user, err := h.userService.GetByID(r.Context(), userID)
+	user, err := h.userService.GetByID(c.Request().Context(), userID)
 	if err != nil {
-		log.Printf("User not found (id=%d): %v", userID, err) 
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
+		log.Printf("User not found (id=%d): %v", userID, err)
+		return echo.NewHTTPError(http.StatusNotFound, "User not found")
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	return c.JSON(http.StatusOK, user)
 }

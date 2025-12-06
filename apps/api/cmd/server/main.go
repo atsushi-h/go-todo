@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
 
 	"go-todo/internal/auth"
 	"go-todo/internal/database"
@@ -11,6 +9,8 @@ import (
 	"go-todo/internal/repository"
 	"go-todo/internal/router"
 	"go-todo/internal/service"
+
+	"github.com/labstack/echo/v4"
 )
 
 // @title Todo API
@@ -31,7 +31,7 @@ func main() {
 	}
 	log.Println("Database connected successfully.")
 
-	// SessionManagerを作成（値として受け取る）
+	// SessionManagerを作成
 	sessionManager, err := auth.NewSessionManager()
 	if err != nil {
 		log.Fatal("Failed to initialize session:", err)
@@ -54,14 +54,15 @@ func main() {
 	todoHandler := handler.NewTodoHandler(todoService)
 	authHandler := handler.NewAuthHandler(userService, sessionManager)
 
-	// ルーターの初期化
-	r := router.NewRouter()
-	router.SetupRoutes(r, todoHandler, sessionManager)
-	router.SetupAuthRoutes(r, authHandler, sessionManager)
+	// Echoインスタンスを作成
+	e := echo.New()
+
+	// ルートを設定
+	router.SetupRoutes(e, todoHandler, authHandler, sessionManager)
 
 	// サーバー起動
-	fmt.Println("Server starting on :4000...")
-	if err := http.ListenAndServe(":4000", r); err != nil {
+	log.Println("Server starting on :4000...")
+	if err := e.Start(":4000"); err != nil {
 		log.Fatal(err)
 	}
 }

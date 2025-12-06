@@ -1,31 +1,34 @@
 package router
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"go-todo/internal/auth"
 	"go-todo/internal/handler"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
-// ルーターにルートを設定
-func SetupRoutes(r *Router, todoHandler *handler.TodoHandler, sm *auth.SessionManager) {
-	// グローバルミドルウェアを設定（ルートマッチング前に適用）
-	r.UseGlobal(CORSMiddleware)
-
-	// ミドルウェアを設定（ルートマッチング後に適用）
-	r.Use(RecoveryMiddleware)
-	r.Use(LoggingMiddleware)
+// Echoインスタンスにルートを設定
+func SetupRoutes(e *echo.Echo, todoHandler *handler.TodoHandler, authHandler *handler.AuthHandler, sm *auth.SessionManager) {
+	// グローバルミドルウェア
+	e.Use(middleware.CORSWithConfig(CORSConfig()))
+	e.Use(middleware.Recover())
+	e.Use(middleware.Logger())
 
 	// 共通ルート定義
-	r.GET("/", handleHome)
-	r.GET("/health", handleHealth)
+	e.GET("/", handleHome)
+	e.GET("/health", handleHealth)
 
-	// Todo関連のルート（todo.route.goに分離）
-	SetupTodoRoutes(r, todoHandler, sm)
+	// Todo関連のルート
+	SetupTodoRoutes(e, todoHandler, sm)
 
-	// 404カスタムハンドラー
-	r.SetNotFound(handleNotFound)
+	// 認証関連のルート
+	SetupAuthRoutes(e, authHandler, sm)
+
+	// カスタムエラーハンドラー
+	e.HTTPErrorHandler = customHTTPErrorHandler
 }
 
 // handleHome godoc
@@ -36,9 +39,8 @@ func SetupRoutes(r *Router, todoHandler *handler.TodoHandler, sm *auth.SessionMa
 // @Produce json
 // @Success 200 {object} map[string]string
 // @Router / [get]
-func handleHome(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+func handleHome(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]string{
 		"message": "Todo API",
 		"version": "0.0.0",
 	})
@@ -52,19 +54,31 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {object} map[string]string
 // @Router /health [get]
-func handleHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+func handleHealth(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]string{
 		"status": "ok",
 	})
 }
 
-// 404エラーハンドラー
-func handleNotFound(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(map[string]string{
-		"error": "Resource not found",
-		"path":  r.URL.Path,
-	})
+// カスタムエラーハンドラー
+func customHTTPErrorHandler(err error, c echo.Context) {
+	code := http.StatusInternalServerError
+	message := "Internal Server Error"
+
+	if he, ok := err.(*echo.HTTPError); ok {
+		code = he.Code
+		if m, ok := he.Message.(string); ok {
+			message = m
+		}
+	}
+
+	if code == http.StatusNotFound {
+		c.JSON(code, map[string]string{
+			"error": "Resource not found",
+			"path":  c.Request().URL.Path,
+		})
+		return
+	}
+
+	c.JSON(code, map[string]string{"error": message})
 }

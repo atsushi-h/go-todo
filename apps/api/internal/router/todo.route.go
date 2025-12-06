@@ -3,16 +3,20 @@ package router
 import (
 	"go-todo/internal/auth"
 	"go-todo/internal/handler"
+
+	"github.com/labstack/echo/v4"
 )
 
-// SetupTodoRoutes はTodo関連のルートを設定
-func SetupTodoRoutes(r *Router, todoHandler *handler.TodoHandler, sm *auth.SessionManager) {
-	requireAuth := auth.RequireAuth(sm) // 認証ミドルウェア
+// Todo関連のルートを設定
+func SetupTodoRoutes(e *echo.Echo, todoHandler *handler.TodoHandler, sm *auth.SessionManager) {
+	// ルートグループを使用（認証が必要なルート）
+	todosGroup := e.Group("/todos")
+	todosGroup.Use(auth.RequireAuth(sm)) // グループにミドルウェアを適用
 
-	// Todoルートの登録
-	r.GET("/todos", requireAuth(todoHandler.ListTodos))
-	r.POST("/todos", requireAuth(todoHandler.CreateTodo))
-	r.GET("/todos/{id}", requireAuth(todoHandler.GetTodo))
-	r.PUT("/todos/{id}", requireAuth(todoHandler.UpdateTodo))
-	r.DELETE("/todos/{id}", requireAuth(todoHandler.DeleteTodo))
+	// パラメータは :id 形式（Echo標準）
+	todosGroup.GET("", todoHandler.ListTodos)
+	todosGroup.POST("", todoHandler.CreateTodo)
+	todosGroup.GET("/:id", todoHandler.GetTodo)
+	todosGroup.PUT("/:id", todoHandler.UpdateTodo)
+	todosGroup.DELETE("/:id", todoHandler.DeleteTodo)
 }
