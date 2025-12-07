@@ -13,11 +13,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// @title Todo API
-// @version 0.0.0
-// @description A simple Todo API built with Go and PostgreSQL
-// @host localhost:4000
-// @BasePath /
 func main() {
 	// DBの初期化
 	db, err := database.Init()
@@ -51,14 +46,14 @@ func main() {
 	userService := service.NewUserService(userRepo)
 
 	// ハンドラーの初期化
-	todoHandler := handler.NewTodoHandler(todoService)
+	apiHandler := handler.NewAPIHandler(todoService)
 	authHandler := handler.NewAuthHandler(userService, sessionManager)
 
 	// Echoインスタンスを作成
 	e := echo.New()
 
 	// ルートを設定
-	router.SetupRoutes(e, todoHandler, authHandler, sessionManager)
+	router.SetupRoutes(e, apiHandler, authHandler, sessionManager)
 
 	// サーバー起動
 	log.Println("Server starting on :4000...")

@@ -34,3 +34,8 @@ func GetUserIDFromContext(ctx context.Context) (uint, bool) {
 	userID, ok := ctx.Value(UserIDKey).(uint)
 	return userID, ok
 }
+
+// コンテキストにユーザーIDを設定
+func WithUserID(ctx context.Context, userID uint) context.Context {
+	return context.WithValue(ctx, UserIDKey, userID)
+}

@@ -1,226 +1,332 @@
-basePath: /
-definitions:
-  model.CreateTodoRequest:
-    properties:
-      description:
-        type: string
-      title:
-        type: string
-    type: object
-  model.Todo:
-    properties:
-      completed:
-        type: boolean
-      created_at:
-        type: string
-      description:
-        type: string
-      id:
-        type: integer
-      title:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  model.UpdateTodoRequest:
-    properties:
-      completed:
-        type: boolean
-      description:
-        type: string
-      title:
-        type: string
-    type: object
-host: localhost:4000
+openapi: 3.0.3
 info:
-  contact: {}
-  description: A simple Todo API built with Go and PostgreSQL
   title: Todo API
-  version: 0.0.0
+  version: 0.1.0
+  description: A simple Todo API built with Go and PostgreSQL
+servers:
+  - url: http://localhost:4000
+    description: Local development server
 paths:
   /:
     get:
-      consumes:
-      - application/json
+      summary: API information
       description: Get API information including name and version
-      produces:
-      - application/json
+      operationId: getInfo
+      tags:
+        - general
       responses:
         "200":
           description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: API information
-      tags:
-      - general
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfoResponse'
   /health:
     get:
-      consumes:
-      - application/json
+      summary: Health check
       description: Check if the API is running
-      produces:
-      - application/json
+      operationId: getHealth
+      tags:
+        - general
       responses:
         "200":
           description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Health check
-      tags:
-      - general
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /todos:
     get:
-      consumes:
-      - application/json
-      description: Get all todos from the database
-      produces:
-      - application/json
+      summary: List all todos
+      description: Get all todos for the authenticated user
+      operationId: listTodos
+      tags:
+        - todos
+      security:
+        - cookieAuth: []
       responses:
         "200":
           description: OK
-          schema:
-            items:
-              $ref: '#/definitions/model.Todo'
-            type: array
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Todo'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         "500":
           description: Internal server error
-          schema:
-            type: string
-      summary: List all todos
-      tags:
-      - todos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     post:
-      consumes:
-      - application/json
+      summary: Create a new todo
       description: Create a new todo with the provided information
-      parameters:
-      - description: Todo to create
-        in: body
-        name: todo
+      operationId: createTodo
+      tags:
+        - todos
+      security:
+        - cookieAuth: []
+      requestBody:
         required: true
-        schema:
-          $ref: '#/definitions/model.CreateTodoRequest'
-      produces:
-      - application/json
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoRequest'
       responses:
         "201":
           description: Created
-          schema:
-            $ref: '#/definitions/model.Todo'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
         "400":
-          description: Invalid request body or title is required
-          schema:
-            type: string
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         "500":
           description: Internal server error
-          schema:
-            type: string
-      summary: Create a new todo
-      tags:
-      - todos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /todos/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a todo by ID
+    get:
+      summary: Get a todo by ID
+      description: Get a single todo by its ID
+      operationId: getTodo
+      tags:
+        - todos
+      security:
+        - cookieAuth: []
       parameters:
-      - description: Todo ID
-        in: path
-        name: id
+        - name: id
+          in: path
+          required: true
+          description: Todo ID
+          schema:
+            type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        "400":
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Todo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Update a todo
+      description: Update an existing todo by ID
+      operationId: updateTodo
+      tags:
+        - todos
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Todo ID
+          schema:
+            type: integer
+          format: int64
+      requestBody:
         required: true
-        type: integer
-      produces:
-      - application/json
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTodoRequest'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        "400":
+          description: Invalid ID or request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Todo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Delete a todo
+      description: Delete a todo by ID
+      operationId: deleteTodo
+      tags:
+        - todos
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Todo ID
+          schema:
+            type: integer
+          format: int64
       responses:
         "204":
           description: No Content
         "400":
           description: Invalid ID
-          schema:
-            type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         "404":
           description: Todo not found
-          schema:
-            type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         "500":
           description: Internal server error
-          schema:
-            type: string
-      summary: Delete a todo
-      tags:
-      - todos
-    get:
-      consumes:
-      - application/json
-      description: Get a single todo by its ID
-      parameters:
-      - description: Todo ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.Todo'
-        "400":
-          description: Invalid ID
-          schema:
-            type: string
-        "404":
-          description: Todo not found
-          schema:
-            type: string
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: Get a todo by ID
-      tags:
-      - todos
-    put:
-      consumes:
-      - application/json
-      description: Update an existing todo by ID
-      parameters:
-      - description: Todo ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Todo update information
-        in: body
-        name: todo
-        required: true
-        schema:
-          $ref: '#/definitions/model.UpdateTodoRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.Todo'
-        "400":
-          description: Invalid ID or request body
-          schema:
-            type: string
-        "404":
-          description: Todo not found
-          schema:
-            type: string
-        "500":
-          description: Internal server error
-          schema:
-            type: string
-      summary: Update a todo
-      tags:
-      - todos
-swagger: "2.0"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    Todo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        completed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user_id:
+          type: integer
+          format: int64
+      required:
+        - id
+        - title
+        - completed
+        - user_id
+        - created_at
+        - updated_at
+    CreateTodoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+      required:
+        - title
+    UpdateTodoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        completed:
+          type: boolean
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    InfoResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+      required:
+        - name
+        - version
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+tags:
+  - name: general
+    description: General endpoints
+  - name: todos
+    description: Todo management endpoints
