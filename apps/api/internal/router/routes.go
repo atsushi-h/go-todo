@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"go-todo/internal/auth"
+	"go-todo/internal/gen"
 	"go-todo/internal/handler"
 
 	"github.com/labstack/echo/v4"
@@ -11,53 +12,50 @@ import (
 )
 
 // Echoインスタンスにルートを設定
-func SetupRoutes(e *echo.Echo, todoHandler *handler.TodoHandler, authHandler *handler.AuthHandler, sm *auth.SessionManager) {
+func SetupRoutes(e *echo.Echo, apiHandler *handler.APIHandler, authHandler *handler.AuthHandler, sm *auth.SessionManager) {
 	// グローバルミドルウェア
 	e.Use(middleware.CORSWithConfig(CORSConfig()))
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
 
-	// 共通ルート定義
-	e.GET("/", handleHome)
-	e.GET("/health", handleHealth)
+	// 認証ミドルウェアをstrictmiddlewareとしてラップ
+	authMiddleware := createAuthMiddleware(sm)
 
-	// Todo関連のルート
-	SetupTodoRoutes(e, todoHandler, sm)
+	// StrictハンドラーをEchoハンドラーにラップ（認証ミドルウェア付き）
+	strictHandler := gen.NewStrictHandler(apiHandler, []gen.StrictMiddlewareFunc{authMiddleware})
 
-	// 認証関連のルート
+	// 生成されたルート登録関数を使用
+	gen.RegisterHandlers(e, strictHandler)
+
+	// 認証関連のルート（手動で設定）
 	SetupAuthRoutes(e, authHandler, sm)
 
 	// カスタムエラーハンドラー
 	e.HTTPErrorHandler = customHTTPErrorHandler
 }
 
-// handleHome godoc
-// @Summary API information
-// @Description Get API information including name and version
-// @Tags general
-// @Accept json
-// @Produce json
-// @Success 200 {object} map[string]string
-// @Router / [get]
-func handleHome(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]string{
-		"message": "Todo API",
-		"version": "0.0.0",
-	})
-}
+// 認証ミドルウェアをStrictMiddlewareFuncに変換
+func createAuthMiddleware(sm *auth.SessionManager) gen.StrictMiddlewareFunc {
+	return func(f gen.StrictHandlerFunc, operationID string) gen.StrictHandlerFunc {
+		return func(ctx echo.Context, request interface{}) (interface{}, error) {
+			// 認証不要なエンドポイントをスキップ
+			if operationID == "GetInfo" || operationID == "GetHealth" {
+				return f(ctx, request)
+			}
 
-// handleHealth godoc
-// @Summary Health check
-// @Description Check if the API is running
-// @Tags general
-// @Accept json
-// @Produce json
-// @Success 200 {object} map[string]string
-// @Router /health [get]
-func handleHealth(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]string{
-		"status": "ok",
-	})
+			// セッションからユーザーIDを取得
+			userID, err := sm.GetUserID(ctx.Request())
+			if err != nil {
+				return nil, echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+			}
+
+			// コンテキストにユーザーIDを設定
+			newCtx := auth.WithUserID(ctx.Request().Context(), userID)
+			ctx.SetRequest(ctx.Request().WithContext(newCtx))
+
+			return f(ctx, request)
+		}
+	}
 }
 
 // カスタムエラーハンドラー

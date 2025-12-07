@@ -1,17 +1,15 @@
 package handler
 
 import (
-	"net/http"
-	"strconv"
+	"context"
 
 	"go-todo/internal/auth"
+	"go-todo/internal/gen"
 	"go-todo/internal/model"
 	"go-todo/internal/service"
-
-	"github.com/labstack/echo/v4"
 )
 
-// TodoのHTTPハンドラー
+// TodoのHTTPハンドラー（StrictServerInterface実装）
 type TodoHandler struct {
 	service *service.TodoService
 }
@@ -23,172 +21,162 @@ func NewTodoHandler(service *service.TodoService) *TodoHandler {
 	}
 }
 
-// ListTodos godoc
-// @Summary List all todos
-// @Description Get all todos from the database
-// @Tags todos
-// @Accept json
-// @Produce json
-// @Success 200 {array} model.Todo
-// @Failure 500 {string} string "Internal server error"
-// @Router /todos [get]
-func (h *TodoHandler) ListTodos(c echo.Context) error {
-	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
+// ListTodos - 全Todoを取得
+func (h *TodoHandler) ListTodos(ctx context.Context, request gen.ListTodosRequestObject) (gen.ListTodosResponseObject, error) {
+	userID, ok := auth.GetUserIDFromContext(ctx)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+		return gen.ListTodos401JSONResponse{Message: "Unauthorized"}, nil
 	}
 
-	todos, err := h.service.GetAllTodos(c.Request().Context(), userID)
+	todos, err := h.service.GetAllTodos(ctx, userID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
+		return gen.ListTodos500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return c.JSON(http.StatusOK, todos)
+	return gen.ListTodos200JSONResponse(convertTodosToGen(todos)), nil
 }
 
-// GetTodo godoc
-// @Summary Get a todo by ID
-// @Description Get a single todo by its ID
-// @Tags todos
-// @Accept json
-// @Produce json
-// @Param id path int true "Todo ID"
-// @Success 200 {object} model.Todo
-// @Failure 400 {string} string "Invalid ID"
-// @Failure 404 {string} string "Todo not found"
-// @Failure 500 {string} string "Internal server error"
-// @Router /todos/{id} [get]
-func (h *TodoHandler) GetTodo(c echo.Context) error {
-	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
+// GetTodo - IDでTodoを取得
+func (h *TodoHandler) GetTodo(ctx context.Context, request gen.GetTodoRequestObject) (gen.GetTodoResponseObject, error) {
+	userID, ok := auth.GetUserIDFromContext(ctx)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+		return gen.GetTodo401JSONResponse{Message: "Unauthorized"}, nil
 	}
 
-	idStr := c.Param("id")
-	idInt, err := strconv.Atoi(idStr)
-	if err != nil || idInt < 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
+	if request.Id < 0 {
+		return gen.GetTodo400JSONResponse{Message: "Invalid ID"}, nil
 	}
 
-	id := uint(idInt)
-	todo, err := h.service.GetTodoByID(c.Request().Context(), id, userID)
+	id := uint(request.Id)
+	todo, err := h.service.GetTodoByID(ctx, id, userID)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
-			return echo.NewHTTPError(http.StatusNotFound, "Todo not found")
+			return gen.GetTodo404JSONResponse{Message: "Todo not found"}, nil
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
+		return gen.GetTodo500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return c.JSON(http.StatusOK, todo)
+	return gen.GetTodo200JSONResponse(convertTodoToGen(todo)), nil
 }
 
-// CreateTodo godoc
-// @Summary Create a new todo
-// @Description Create a new todo with the provided information
-// @Tags todos
-// @Accept json
-// @Produce json
-// @Param todo body model.CreateTodoRequest true "Todo to create"
-// @Success 201 {object} model.Todo
-// @Failure 400 {string} string "Invalid request body or title is required"
-// @Failure 500 {string} string "Internal server error"
-// @Router /todos [post]
-func (h *TodoHandler) CreateTodo(c echo.Context) error {
-	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
+// CreateTodo - 新しいTodoを作成
+func (h *TodoHandler) CreateTodo(ctx context.Context, request gen.CreateTodoRequestObject) (gen.CreateTodoResponseObject, error) {
+	userID, ok := auth.GetUserIDFromContext(ctx)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+		return gen.CreateTodo401JSONResponse{Message: "Unauthorized"}, nil
 	}
 
-	var req model.CreateTodoRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
-	}
-	if req.Title == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Title is required")
+	if request.Body == nil {
+		return gen.CreateTodo400JSONResponse{Message: "Invalid request body"}, nil
 	}
 
-	todo, err := h.service.CreateTodo(c.Request().Context(), req, userID)
+	if request.Body.Title == "" {
+		return gen.CreateTodo400JSONResponse{Message: "Title is required"}, nil
+	}
+
+	req := model.CreateTodoRequest{
+		Title:       request.Body.Title,
+		Description: ptrToString(request.Body.Description),
+	}
+
+	todo, err := h.service.CreateTodo(ctx, req, userID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
+		return gen.CreateTodo500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return c.JSON(http.StatusCreated, todo)
+	return gen.CreateTodo201JSONResponse(convertTodoToGen(todo)), nil
 }
 
-// UpdateTodo godoc
-// @Summary Update a todo
-// @Description Update an existing todo by ID
-// @Tags todos
-// @Accept json
-// @Produce json
-// @Param id path int true "Todo ID"
-// @Param todo body model.UpdateTodoRequest true "Todo update information"
-// @Success 200 {object} model.Todo
-// @Failure 400 {string} string "Invalid ID or request body"
-// @Failure 404 {string} string "Todo not found"
-// @Failure 500 {string} string "Internal server error"
-// @Router /todos/{id} [put]
-func (h *TodoHandler) UpdateTodo(c echo.Context) error {
-	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
+// UpdateTodo - Todoを更新
+func (h *TodoHandler) UpdateTodo(ctx context.Context, request gen.UpdateTodoRequestObject) (gen.UpdateTodoResponseObject, error) {
+	userID, ok := auth.GetUserIDFromContext(ctx)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+		return gen.UpdateTodo401JSONResponse{Message: "Unauthorized"}, nil
 	}
 
-	idStr := c.Param("id")
-	idInt, err := strconv.Atoi(idStr)
-	if err != nil || idInt < 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
+	if request.Id < 0 {
+		return gen.UpdateTodo400JSONResponse{Message: "Invalid ID"}, nil
 	}
 
-	id := uint(idInt)
-	var req model.UpdateTodoRequest
-	if err := c.Bind(&req); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
+	if request.Body == nil {
+		return gen.UpdateTodo400JSONResponse{Message: "Invalid request body"}, nil
 	}
 
-	todo, err := h.service.UpdateTodo(c.Request().Context(), id, userID, req)
+	id := uint(request.Id)
+	req := model.UpdateTodoRequest{
+		Title:       request.Body.Title,
+		Description: request.Body.Description,
+		Completed:   request.Body.Completed,
+	}
+
+	todo, err := h.service.UpdateTodo(ctx, id, userID, req)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
-			return echo.NewHTTPError(http.StatusNotFound, "Todo not found")
+			return gen.UpdateTodo404JSONResponse{Message: "Todo not found"}, nil
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
+		return gen.UpdateTodo500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return c.JSON(http.StatusOK, todo)
+	return gen.UpdateTodo200JSONResponse(convertTodoToGen(todo)), nil
 }
 
-// DeleteTodo godoc
-// @Summary Delete a todo
-// @Description Delete a todo by ID
-// @Tags todos
-// @Accept json
-// @Produce json
-// @Param id path int true "Todo ID"
-// @Success 204 "No Content"
-// @Failure 400 {string} string "Invalid ID"
-// @Failure 404 {string} string "Todo not found"
-// @Failure 500 {string} string "Internal server error"
-// @Router /todos/{id} [delete]
-func (h *TodoHandler) DeleteTodo(c echo.Context) error {
-	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
+// DeleteTodo - Todoを削除
+func (h *TodoHandler) DeleteTodo(ctx context.Context, request gen.DeleteTodoRequestObject) (gen.DeleteTodoResponseObject, error) {
+	userID, ok := auth.GetUserIDFromContext(ctx)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+		return gen.DeleteTodo401JSONResponse{Message: "Unauthorized"}, nil
 	}
 
-	idStr := c.Param("id")
-	idInt, err := strconv.Atoi(idStr)
-	if err != nil || idInt < 0 {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID")
+	if request.Id < 0 {
+		return gen.DeleteTodo400JSONResponse{Message: "Invalid ID"}, nil
 	}
 
-	id := uint(idInt)
+	id := uint(request.Id)
 
-	if err := h.service.DeleteTodo(c.Request().Context(), id, userID); err != nil {
+	if err := h.service.DeleteTodo(ctx, id, userID); err != nil {
 		if err == service.ErrTodoNotFound {
-			return echo.NewHTTPError(http.StatusNotFound, "Todo not found")
+			return gen.DeleteTodo404JSONResponse{Message: "Todo not found"}, nil
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
+		return gen.DeleteTodo500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return gen.DeleteTodo204Response{}, nil
+}
+
+// model.Todo から gen.Todo への変換
+func convertTodoToGen(todo *model.Todo) gen.Todo {
+	return gen.Todo{
+		Id:          int64(todo.ID),
+		Title:       todo.Title,
+		Description: stringToPtr(todo.Description),
+		Completed:   todo.Completed,
+		CreatedAt:   todo.CreatedAt,
+		UpdatedAt:   todo.UpdatedAt,
+		UserId:      int64(todo.UserID),
+	}
+}
+
+// []model.Todo から []gen.Todo への変換
+func convertTodosToGen(todos []*model.Todo) []gen.Todo {
+	result := make([]gen.Todo, len(todos))
+	for i, todo := range todos {
+		result[i] = convertTodoToGen(todo)
+	}
+	return result
+}
+
+// ヘルパー: *string → string（nilの場合は空文字）
+func ptrToString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// ヘルパー: string → *string（空文字の場合はnil）
+func stringToPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }

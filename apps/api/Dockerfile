@@ -13,6 +13,7 @@ RUN apk add --no-cache curl && \
 RUN go mod tidy && \
     go install github.com/cosmtrek/air@v1.46.0 && \
     go install honnef.co/go/tools/cmd/staticcheck@latest && \
-    go install github.com/swaggo/swag/cmd/swag@latest
+    go install cuelang.org/go/cmd/cue@latest && \
+    go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 
 CMD ["air", "-c", ".air.toml"]

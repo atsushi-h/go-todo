@@ -94,13 +94,32 @@ seed-fresh:
 ## 複数のライブラリを指定する場合は、name="xxx yyy" のように""で囲んで実行すること
 go-add-library:
 	docker exec -it ${BACKEND_CONTAINER_NAME} sh -c "go get ${name}"
+## 依存関係の整理
+go-mod-tidy:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go mod tidy"
 ## テスト
 test:
 	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go test -v ./..."
 lint:
 	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "staticcheck ./..."
 
-## OpenAPI YAML生成
-openapi:
-	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "cd /app && swag init -g cmd/server/main.go -o openapi --outputTypes yaml"
-	mv /Users/atsushi-h/workspace/go-todo/apps/api/openapi/swagger.yaml /Users/atsushi-h/workspace/go-todo/apps/api/openapi/openapi.yaml
+## OpenAPI生成（CUE → YAML → Go）
+# CUEファイルのフォーマット
+cue-fmt:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "cd /app/openapi/cue && cue fmt api.cue"
+
+# CUEファイルの検証
+cue-vet:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "cd /app/openapi/cue && cue vet api.cue"
+
+# CUEからOpenAPI YAMLを生成
+openapi-gen:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "cd /app/openapi/cue && cue export api.cue -f -o ../openapi.yaml --out yaml"
+
+# OpenAPI YAMLからGoコードを生成
+api-gen:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "cd /app/openapi && oapi-codegen --config oapi-codegen.yaml openapi.yaml"
+
+# 全て生成（CUE → OpenAPI YAML → Go）
+generate: cue-fmt cue-vet openapi-gen api-gen
+	@echo "Generated OpenAPI spec and Go code"
