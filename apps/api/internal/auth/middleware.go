@@ -30,12 +30,12 @@ func RequireAuth(sm *SessionManager) echo.MiddlewareFunc {
 }
 
 // コンテキストからユーザーIDを取得
-func GetUserIDFromContext(ctx context.Context) (uint, bool) {
-	userID, ok := ctx.Value(UserIDKey).(uint)
+func GetUserIDFromContext(ctx context.Context) (int64, bool) {
+	userID, ok := ctx.Value(UserIDKey).(int64)
 	return userID, ok
 }
 
 // コンテキストにユーザーIDを設定
-func WithUserID(ctx context.Context, userID uint) context.Context {
+func WithUserID(ctx context.Context, userID int64) context.Context {
 	return context.WithValue(ctx, UserIDKey, userID)
 }

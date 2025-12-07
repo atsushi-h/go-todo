@@ -30,49 +30,79 @@
 - CI/CDから実行（手動トリガー推奨）
 - DB接続先: 本番環境のRDSエンドポイント
 
+## ディレクトリ構成
+
+```
+apps/api/
+├── db/
+│   ├── schema.sql          # スキーマ定義（真実の源）
+│   ├── query/              # SQLクエリ定義
+│   │   ├── todo.sql
+│   │   └── user.sql
+│   ├── migrations/         # マイグレーションファイル
+│   │   ├── 20251125113905_init.sql
+│   │   └── atlas.sum
+│   └── sqlc/               # sqlc生成コード（自動生成）
+│       ├── db.go
+│       ├── models.go
+│       ├── todo.sql.go
+│       └── user.sql.go
+├── sqlc.yaml               # sqlc設定
+└── atlas.hcl               # Atlas設定
+```
+
 ## 基本的な流れ
 
 ```
-1. Goのモデルを編集
+1. db/schema.sql を編集
    ↓
-2. スキーマSQLを生成（go run cmd/schema/main.go）
+2. マイグレーションファイルを生成（atlas migrate diff）
    ↓
-3. マイグレーションファイルを生成（atlas migrate diff）
+3. マイグレーションファイルをレビュー
    ↓
-4. マイグレーションファイルをレビュー
+4. マイグレーションを適用（atlas migrate apply）
    ↓
-5. マイグレーションを適用（atlas migrate apply）
+5. sqlcコードを再生成（sqlc generate）
    ↓
 6. 変更をGitにコミット（atlas.sumも含む）
 ```
 
-## マイグレーション手順
-
-### 1. モデルの変更
-
-例: Todoモデルに新しいカラムを追加
-
-```go
-// apps/api/internal/model/todo.model.go
-type Todo struct {
-    ID          uint      `json:"id" bun:",pk,autoincrement"`
-    Title       string    `json:"title" bun:",notnull"`
-    Description string    `json:"description"`
-    Completed   bool      `json:"completed" bun:",default:false"`
-    Priority    int       `json:"priority" bun:",default:0"` // 新規追加
-    CreatedAt   time.Time `json:"created_at" bun:",nullzero,notnull,default:current_timestamp"`
-    UpdatedAt   time.Time `json:"updated_at" bun:",nullzero,notnull,default:current_timestamp"`
-}
-```
-
-### 2. スキーマSQLの生成
+または、一括コマンドを使用:
 
 ```bash
-# ローカル環境
-make generate-schema
+make schema-update NAME=<migration_name>
 ```
 
-これにより `apps/api/schema.sql` が更新されます。
+## マイグレーション手順
+
+### 1. スキーマの変更
+
+例: Todoテーブルに新しいカラムを追加
+
+```sql
+-- apps/api/db/schema.sql
+CREATE TABLE todos (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    priority INTEGER NOT NULL DEFAULT 0,  -- 新規追加
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+### 2. クエリの追加・更新（必要な場合）
+
+```sql
+-- apps/api/db/query/todo.sql
+
+-- name: ListTodosByUserOrderByPriority :many
+SELECT * FROM todos
+WHERE user_id = $1
+ORDER BY priority DESC, created_at DESC;
+```
 
 ### 3. マイグレーションファイルの生成
 
@@ -81,14 +111,14 @@ make generate-schema
 make migrate-diff NAME=add_priority_to_todos
 ```
 
-`apps/api/migrations/YYYYMMDDHHMMSS_add_priority_to_todos.sql` が生成されます。
+`apps/api/db/migrations/YYYYMMDDHHMMSS_add_priority_to_todos.sql` が生成されます。
 
 ### 4. マイグレーションファイルのレビュー
 
 生成されたSQLファイルを確認:
 
 ```sql
--- apps/api/migrations/20250125120000_add_priority_to_todos.sql
+-- apps/api/db/migrations/20250125120000_add_priority_to_todos.sql
 -- Add column "priority" to table: "todos"
 ALTER TABLE "todos" ADD COLUMN "priority" integer NOT NULL DEFAULT 0;
 ```
@@ -125,25 +155,24 @@ Migrating to version 20250125120000 (1 migration)
   -> 0s
 ```
 
-### 7. Gitへのコミット
+### 7. sqlcコードの再生成
+
+```bash
+make sqlc-generate
+```
+
+これにより `db/sqlc/` 配下のコードが更新されます。
+
+### 8. Gitへのコミット
 
 マイグレーションファイルと atlas.sum をコミット:
 
 ```bash
-git add apps/api/migrations/
-git add apps/api/atlas.sum
+git add apps/api/db/
 git commit -m "feat: Add priority column to todos table"
 ```
 
 ## よく使うコマンド
-
-### スキーマ生成
-
-```bash
-make generate-schema
-```
-
-Goのモデルから `schema.sql` を生成します。
 
 ### マイグレーションファイル生成
 
@@ -169,15 +198,29 @@ make migrate-apply
 
 未適用のマイグレーションを全て適用します。
 
-### 特定バージョンへのマイグレーション
+### sqlcコード生成
 
 ```bash
-docker exec -i go_todo_server \
-  atlas migrate apply \
-  --env local \
-  --config file://atlas.hcl \
-  --to-version 20250125120000
+make sqlc-generate
 ```
+
+`db/query/` 内のSQLから Go コードを生成します。
+
+### スキーマ変更の一括処理
+
+```bash
+make schema-update NAME=<migration_name>
+```
+
+マイグレーション生成とsqlcコード生成を一括実行します。
+
+### 全コード生成
+
+```bash
+make generate
+```
+
+OpenAPI + sqlc のコードを一括生成します。
 
 ### ハッシュ値の再計算
 
@@ -195,12 +238,12 @@ make migrate-hash
 
 **解決方法**:
 ```bash
-# PostgreSQLに接続
-docker exec -it go_todo_db psql -U user -d go_todo_db
+make create-atlas-dev-db
+```
 
-# atlas_dev データベースを作成
-CREATE DATABASE atlas_dev;
-\q
+または手動で:
+```bash
+docker exec -it go_todo_db psql -U user -d go_todo_db -c "CREATE DATABASE atlas_dev;"
 ```
 
 ### エラー: "migration checksum mismatch"
@@ -249,7 +292,7 @@ DELETE FROM atlas_migrations WHERE version = '20250125120000';
 
 - Atlasが差分計算のために使用する**一時的な作業用データベース**
 - マイグレーション実行時に以下の処理で使用される:
-  1. `atlas_dev` に現在のスキーマ（`schema.sql`）を適用
+  1. `atlas_dev` に現在のスキーマ（`db/schema.sql`）を適用
   2. 実際のDB（`go_todo_db`）と `atlas_dev` を比較
   3. 差分をマイグレーションファイルとして生成
 - データは保存されず、毎回クリーンな状態で使用される
@@ -262,11 +305,17 @@ DELETE FROM atlas_migrations WHERE version = '20250125120000';
 - **必ずGitで管理する**（コミット必須）
 - マイグレーションファイルを手動編集した場合は `make migrate-hash` で再計算
 
+### sqlc について
+
+- SQLクエリから型安全なGoコードを自動生成するツール
+- `db/query/*.sql` に定義したクエリが `db/sqlc/*.go` に生成される
+- 生成されたコードは直接編集しない（再生成で上書きされる）
+
 ### ベストプラクティス
 
-1. **マイグレーションファイルは編集しない**
-   - 一度生成したら基本的に編集しない
-   - どうしても必要な場合は `make migrate-hash` を実行
+1. **db/schema.sql を真実の源として管理**
+   - スキーマ変更は必ず `db/schema.sql` から行う
+   - マイグレーションファイルは差分として生成される
 
 2. **小さく頻繁にマイグレーション**
    - 1つのマイグレーションで1つの変更
@@ -286,8 +335,13 @@ DELETE FROM atlas_migrations WHERE version = '20250125120000';
    - マイグレーションファイルと同時にコミット
    - CIでチェックサム検証を行う
 
+6. **sqlc生成コードは編集しない**
+   - クエリを変更したい場合は `db/query/*.sql` を編集
+   - `make sqlc-generate` で再生成
+
 ## 参考リンク
 
 - [Atlas CLI Documentation](https://atlasgo.io/docs)
-- [Bun ORM Documentation](https://bun.uptrace.dev/)
+- [sqlc Documentation](https://docs.sqlc.dev/)
+- [pgx Documentation](https://github.com/jackc/pgx)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)

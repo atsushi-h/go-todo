@@ -1,19 +1,16 @@
 package database
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"os"
 
-	"github.com/uptrace/bun"
-	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/bun/driver/pgdriver"
-	"github.com/uptrace/bun/extra/bundebug"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Init() (*bun.DB, error) {
+func NewPool(ctx context.Context) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=disable&timezone=Asia/Tokyo",
+		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
 		os.Getenv("POSTGRES_HOST"),
@@ -21,29 +18,19 @@ func Init() (*bun.DB, error) {
 		os.Getenv("POSTGRES_DB"),
 	)
 
-	// PostgreSQL connector
-	connector := pgdriver.NewConnector(pgdriver.WithDSN(dsn))
-	sqldb := sql.OpenDB(connector)
+	config, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("parse config: %w", err)
+	}
 
-	// Bun DB with PostgreSQL dialect
-	db := bun.NewDB(sqldb, pgdialect.New())
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return nil, fmt.Errorf("create pool: %w", err)
+	}
 
-	// Add query hook for debugging (optional, can be removed in production)
-	db.AddQueryHook(bundebug.NewQueryHook(
-		bundebug.WithVerbose(true),
-		bundebug.FromEnv("BUNDEBUG"),
-	))
-
-	return db, nil
+	return pool, nil
 }
 
-// データベース接続の確認
-func HealthCheck(db *bun.DB) error {
-	sqlDB := db.DB
-	return sqlDB.Ping()
-}
-
-// DBを閉じる
-func Close(db *bun.DB) error {
-	return db.Close()
+func HealthCheck(ctx context.Context, pool *pgxpool.Pool) error {
+	return pool.Ping(ctx)
 }

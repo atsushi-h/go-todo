@@ -5,7 +5,7 @@ import (
 
 	"go-todo/internal/auth"
 	"go-todo/internal/gen"
-	"go-todo/internal/model"
+	"go-todo/internal/mapper"
 	"go-todo/internal/service"
 )
 
@@ -33,7 +33,7 @@ func (h *TodoHandler) ListTodos(ctx context.Context, request gen.ListTodosReques
 		return gen.ListTodos500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return gen.ListTodos200JSONResponse(convertTodosToGen(todos)), nil
+	return gen.ListTodos200JSONResponse(mapper.TodosToResponse(todos)), nil
 }
 
 // GetTodo - IDでTodoを取得
@@ -47,8 +47,7 @@ func (h *TodoHandler) GetTodo(ctx context.Context, request gen.GetTodoRequestObj
 		return gen.GetTodo400JSONResponse{Message: "Invalid ID"}, nil
 	}
 
-	id := uint(request.Id)
-	todo, err := h.service.GetTodoByID(ctx, id, userID)
+	todo, err := h.service.GetTodoByID(ctx, int64(request.Id), userID)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
 			return gen.GetTodo404JSONResponse{Message: "Todo not found"}, nil
@@ -56,7 +55,7 @@ func (h *TodoHandler) GetTodo(ctx context.Context, request gen.GetTodoRequestObj
 		return gen.GetTodo500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return gen.GetTodo200JSONResponse(convertTodoToGen(todo)), nil
+	return gen.GetTodo200JSONResponse(mapper.TodoToResponse(todo)), nil
 }
 
 // CreateTodo - 新しいTodoを作成
@@ -74,17 +73,12 @@ func (h *TodoHandler) CreateTodo(ctx context.Context, request gen.CreateTodoRequ
 		return gen.CreateTodo400JSONResponse{Message: "Title is required"}, nil
 	}
 
-	req := model.CreateTodoRequest{
-		Title:       request.Body.Title,
-		Description: ptrToString(request.Body.Description),
-	}
-
-	todo, err := h.service.CreateTodo(ctx, req, userID)
+	todo, err := h.service.CreateTodo(ctx, userID, request.Body.Title, request.Body.Description)
 	if err != nil {
 		return gen.CreateTodo500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return gen.CreateTodo201JSONResponse(convertTodoToGen(todo)), nil
+	return gen.CreateTodo201JSONResponse(mapper.TodoToResponse(todo)), nil
 }
 
 // UpdateTodo - Todoを更新
@@ -102,14 +96,14 @@ func (h *TodoHandler) UpdateTodo(ctx context.Context, request gen.UpdateTodoRequ
 		return gen.UpdateTodo400JSONResponse{Message: "Invalid request body"}, nil
 	}
 
-	id := uint(request.Id)
-	req := model.UpdateTodoRequest{
-		Title:       request.Body.Title,
-		Description: request.Body.Description,
-		Completed:   request.Body.Completed,
-	}
-
-	todo, err := h.service.UpdateTodo(ctx, id, userID, req)
+	todo, err := h.service.UpdateTodo(
+		ctx,
+		int64(request.Id),
+		userID,
+		request.Body.Title,
+		request.Body.Description,
+		request.Body.Completed,
+	)
 	if err != nil {
 		if err == service.ErrTodoNotFound {
 			return gen.UpdateTodo404JSONResponse{Message: "Todo not found"}, nil
@@ -117,7 +111,7 @@ func (h *TodoHandler) UpdateTodo(ctx context.Context, request gen.UpdateTodoRequ
 		return gen.UpdateTodo500JSONResponse{Message: "Internal server error"}, nil
 	}
 
-	return gen.UpdateTodo200JSONResponse(convertTodoToGen(todo)), nil
+	return gen.UpdateTodo200JSONResponse(mapper.TodoToResponse(todo)), nil
 }
 
 // DeleteTodo - Todoを削除
@@ -131,9 +125,7 @@ func (h *TodoHandler) DeleteTodo(ctx context.Context, request gen.DeleteTodoRequ
 		return gen.DeleteTodo400JSONResponse{Message: "Invalid ID"}, nil
 	}
 
-	id := uint(request.Id)
-
-	if err := h.service.DeleteTodo(ctx, id, userID); err != nil {
+	if err := h.service.DeleteTodo(ctx, int64(request.Id), userID); err != nil {
 		if err == service.ErrTodoNotFound {
 			return gen.DeleteTodo404JSONResponse{Message: "Todo not found"}, nil
 		}
@@ -141,42 +133,4 @@ func (h *TodoHandler) DeleteTodo(ctx context.Context, request gen.DeleteTodoRequ
 	}
 
 	return gen.DeleteTodo204Response{}, nil
-}
-
-// model.Todo から gen.Todo への変換
-func convertTodoToGen(todo *model.Todo) gen.Todo {
-	return gen.Todo{
-		Id:          int64(todo.ID),
-		Title:       todo.Title,
-		Description: stringToPtr(todo.Description),
-		Completed:   todo.Completed,
-		CreatedAt:   todo.CreatedAt,
-		UpdatedAt:   todo.UpdatedAt,
-		UserId:      int64(todo.UserID),
-	}
-}
-
-// []model.Todo から []gen.Todo への変換
-func convertTodosToGen(todos []*model.Todo) []gen.Todo {
-	result := make([]gen.Todo, len(todos))
-	for i, todo := range todos {
-		result[i] = convertTodoToGen(todo)
-	}
-	return result
-}
-
-// ヘルパー: *string → string（nilの場合は空文字）
-func ptrToString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
-
-// ヘルパー: string → *string（空文字の場合はnil）
-func stringToPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
 }

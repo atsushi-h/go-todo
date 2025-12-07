@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"go-todo/internal/auth"
+	"go-todo/internal/mapper"
 	"go-todo/internal/service"
 
 	"github.com/labstack/echo/v4"
@@ -85,5 +86,5 @@ func (h *AuthHandler) Me(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "User not found")
 	}
 
-	return c.JSON(http.StatusOK, user)
+	return c.JSON(http.StatusOK, mapper.UserToResponse(user))
 }
