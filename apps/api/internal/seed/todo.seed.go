@@ -3,17 +3,15 @@ package seed
 import (
 	"context"
 
-	"go-todo/internal/model"
-
-	"github.com/uptrace/bun"
+	"go-todo/db/sqlc"
 )
 
 type TodoSeeder struct {
-	db *bun.DB
+	queries *sqlc.Queries
 }
 
-func NewTodoSeeder(db *bun.DB) *TodoSeeder {
-	return &TodoSeeder{db: db}
+func NewTodoSeeder(queries *sqlc.Queries) *TodoSeeder {
+	return &TodoSeeder{queries: queries}
 }
 
 func (s *TodoSeeder) Name() string {
@@ -21,18 +19,10 @@ func (s *TodoSeeder) Name() string {
 }
 
 func (s *TodoSeeder) Seed(ctx context.Context) error {
-	todos := []model.Todo{
-		{Title: "Goの基礎を学ぶ", Description: "A Tour of Goを完了する", Completed: true},
-		{Title: "REST APIを構築", Description: "Todo APIを実装する", Completed: true},
-		{Title: "テストを書く", Description: "ユニットテストとE2Eテストを追加", Completed: false},
-		{Title: "認証機能を追加", Description: "JWT認証を実装する", Completed: false},
-		{Title: "デプロイする", Description: "AWS/GCPにデプロイ", Completed: false},
-	}
-
-	_, err := s.db.NewInsert().
-		Model(&todos).
-		On("CONFLICT DO NOTHING"). // 重複時はスキップ
-		Exec(ctx)
-
-	return err
+	// シードデータにはユーザーIDが必要なため、
+	// 実際の運用では先にユーザーを作成するか、
+	// テスト用ユーザーIDを指定する必要がある
+	//
+	// 現在はスキップ（OAuth認証後にユーザーが作成されるため）
+	return nil
 }

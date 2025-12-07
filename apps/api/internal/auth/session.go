@@ -12,10 +12,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// パッケージ読み込み時にuint型をgobに登録する
-// セッションにuint型のユーザーIDを保存するために必要
+// パッケージ読み込み時にint64型をgobに登録する
+// セッションにint64型のユーザーIDを保存するために必要
 func init() {
-	gob.Register(uint(0))
+	gob.Register(int64(0))
 }
 
 const (
@@ -70,13 +70,13 @@ func (sm *SessionManager) Store() *redisstore.RedisStore {
 	return sm.store
 }
 
-func (sm *SessionManager) GetUserID(r *http.Request) (uint, error) {
+func (sm *SessionManager) GetUserID(r *http.Request) (int64, error) {
 	session, err := sm.Get(r)
 	if err != nil {
 		return 0, err
 	}
 
-	userID, ok := session.Values[UserKey].(uint)
+	userID, ok := session.Values[UserKey].(int64)
 	if !ok {
 		return 0, fmt.Errorf("user not authenticated")
 	}
@@ -84,7 +84,7 @@ func (sm *SessionManager) GetUserID(r *http.Request) (uint, error) {
 	return userID, nil
 }
 
-func (sm *SessionManager) SetUserID(w http.ResponseWriter, r *http.Request, userID uint) error {
+func (sm *SessionManager) SetUserID(w http.ResponseWriter, r *http.Request, userID int64) error {
 	session, err := sm.Get(r)
 	if err != nil {
 		return err

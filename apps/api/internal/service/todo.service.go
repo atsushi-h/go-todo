@@ -4,66 +4,71 @@ import (
 	"context"
 	"errors"
 
-	"go-todo/internal/model"
-	"go-todo/internal/repository"
+	"go-todo/db/sqlc"
+
+	"github.com/jackc/pgx/v5"
 )
 
-// Service層のエラー定義
-var (
-	ErrTodoNotFound = errors.New("todo not found")
-)
+var ErrTodoNotFound = errors.New("todo not found")
 
 type TodoService struct {
-	repo repository.TodoRepository
+	queries *sqlc.Queries
 }
 
-func NewTodoService(repo repository.TodoRepository) *TodoService {
-	return &TodoService{
-		repo: repo,
+func NewTodoService(queries *sqlc.Queries) *TodoService {
+	return &TodoService{queries: queries}
+}
+
+func (s *TodoService) GetAllTodos(ctx context.Context, userID int64) ([]sqlc.Todo, error) {
+	return s.queries.ListTodosByUser(ctx, userID)
+}
+
+func (s *TodoService) GetTodoByID(ctx context.Context, id, userID int64) (*sqlc.Todo, error) {
+	todo, err := s.queries.GetTodoByID(ctx, sqlc.GetTodoByIDParams{
+		ID:     id,
+		UserID: userID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrTodoNotFound
 	}
-}
-
-// 全てのTodoを取得
-func (s *TodoService) GetAllTodos(ctx context.Context, userID uint) ([]*model.Todo, error) {
-	todos, err := s.repo.GetAll(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	return todos, nil
+	return &todo, nil
 }
 
-// 指定されたIDのTodoを取得
-func (s *TodoService) GetTodoByID(ctx context.Context, id uint, userID uint) (*model.Todo, error) {
-	todo, err := s.repo.GetByID(ctx, id, userID)
-	if err == repository.ErrTodoNotFound {
-		return nil, ErrTodoNotFound
-	}
-	return todo, err
-}
-
-// 新しいTodoを作成
-func (s *TodoService) CreateTodo(ctx context.Context, req model.CreateTodoRequest, userID uint) (*model.Todo, error) {
-	todo, err := s.repo.Create(ctx, req.Title, req.Description, userID)
+func (s *TodoService) CreateTodo(ctx context.Context, userID int64, title string, description *string) (*sqlc.Todo, error) {
+	todo, err := s.queries.CreateTodo(ctx, sqlc.CreateTodoParams{
+		UserID:      userID,
+		Title:       title,
+		Description: description,
+	})
 	if err != nil {
 		return nil, err
 	}
-	return todo, nil
+	return &todo, nil
 }
 
-// 既存のTodoを更新
-func (s *TodoService) UpdateTodo(ctx context.Context, id uint, userID uint, req model.UpdateTodoRequest) (*model.Todo, error) {
-	todo, err := s.repo.Update(ctx, id, userID, req.Title, req.Description, req.Completed)
-	if err == repository.ErrTodoNotFound {
+func (s *TodoService) UpdateTodo(ctx context.Context, id, userID int64, title, description *string, completed *bool) (*sqlc.Todo, error) {
+	todo, err := s.queries.UpdateTodo(ctx, sqlc.UpdateTodoParams{
+		ID:          id,
+		UserID:      userID,
+		Title:       title,
+		Description: description,
+		Completed:   completed,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrTodoNotFound
 	}
-	return todo, err
+	if err != nil {
+		return nil, err
+	}
+	return &todo, nil
 }
 
-// 指定されたIDのTodoを削除
-func (s *TodoService) DeleteTodo(ctx context.Context, id uint, userID uint) error {
-	err := s.repo.Delete(ctx, id, userID)
-	if err == repository.ErrTodoNotFound {
-		return ErrTodoNotFound
-	}
-	return err
+func (s *TodoService) DeleteTodo(ctx context.Context, id, userID int64) error {
+	return s.queries.DeleteTodo(ctx, sqlc.DeleteTodoParams{
+		ID:     id,
+		UserID: userID,
+	})
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/uptrace/bun"
+	"go-todo/db/sqlc"
 )
 
 type Seeder interface {
@@ -13,9 +13,9 @@ type Seeder interface {
 }
 
 // 全シーダーを実行
-func RunAll(ctx context.Context, db *bun.DB) error {
+func RunAll(ctx context.Context, queries *sqlc.Queries) error {
 	seeders := []Seeder{
-		NewTodoSeeder(db),
+		NewTodoSeeder(queries),
 	}
 
 	for _, s := range seeders {

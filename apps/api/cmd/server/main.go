@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 
+	"go-todo/db/sqlc"
 	"go-todo/internal/auth"
 	"go-todo/internal/database"
 	"go-todo/internal/handler"
-	"go-todo/internal/repository"
 	"go-todo/internal/router"
 	"go-todo/internal/service"
 
@@ -14,17 +15,23 @@ import (
 )
 
 func main() {
-	// DBの初期化
-	db, err := database.Init()
+	ctx := context.Background()
+
+	// DB接続プールの初期化
+	pool, err := database.NewPool(ctx)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	defer database.Close(db)
+	defer pool.Close()
+
 	// DBのヘルスチェック
-	if err := database.HealthCheck(db); err != nil {
+	if err := database.HealthCheck(ctx, pool); err != nil {
 		log.Fatal("Database health check failed:", err)
 	}
 	log.Println("Database connected successfully.")
+
+	// sqlc Queriesの作成
+	queries := sqlc.New(pool)
 
 	// SessionManagerを作成
 	sessionManager, err := auth.NewSessionManager()
@@ -33,21 +40,20 @@ func main() {
 	}
 	log.Println("Session store initialized.")
 
-	// Gothicに渡す
+	// Gothicの初期化
 	auth.InitProviders()
 	auth.InitGothic(sessionManager)
 
-	// リポジトリの初期化
-	todoRepo := repository.NewTodoRepository(db)
-	userRepo := repository.NewUserRepository(db)
-
 	// サービスの初期化
-	todoService := service.NewTodoService(todoRepo)
-	userService := service.NewUserService(userRepo)
+	todoService := service.NewTodoService(queries)
+	userService := service.NewUserService(queries)
 
 	// ハンドラーの初期化
-	apiHandler := handler.NewAPIHandler(todoService)
+	todoHandler := handler.NewTodoHandler(todoService)
 	authHandler := handler.NewAuthHandler(userService, sessionManager)
+
+	// APIHandlerの作成（StrictServerInterface実装）
+	apiHandler := handler.NewAPIHandler(todoHandler)
 
 	// Echoインスタンスを作成
 	e := echo.New()

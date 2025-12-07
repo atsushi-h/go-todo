@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"go-todo/internal/gen"
-	"go-todo/internal/service"
 )
 
 // APIHandler は StrictServerInterface を実装する
@@ -14,9 +13,9 @@ type APIHandler struct {
 }
 
 // NewAPIHandler は新しいAPIHandlerを作成
-func NewAPIHandler(todoService *service.TodoService) *APIHandler {
+func NewAPIHandler(todoHandler *TodoHandler) *APIHandler {
 	return &APIHandler{
-		todoHandler: NewTodoHandler(todoService),
+		todoHandler: todoHandler,
 	}
 }
 

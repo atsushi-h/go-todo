@@ -1,7 +1,24 @@
 include .env
 
-empty:
-	echo "empty"
+# =============================================================================
+# ローカル開発用
+# =============================================================================
+
+# go library install
+## 複数のライブラリを指定する場合は、name="xxx yyy" のように""で囲んで実行すること
+go-add-library:
+	docker exec -it ${BACKEND_CONTAINER_NAME} sh -c "go get ${name}"
+
+## 依存関係の整理
+go-mod-tidy:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go mod tidy"
+
+## テスト
+test:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go test -v ./..."
+
+lint:
+	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "staticcheck ./..."
 
 # 開発環境のdocker compose コマンド
 dcb-dev:
@@ -15,13 +32,12 @@ dcd-dev:
 backend-ssh:
 	docker exec -it ${BACKEND_CONTAINER_NAME} sh
 
+# =============================================================================
 # データベースマイグレーション関連
+# =============================================================================
+
 # デフォルトの環境を設定
 ATLAS_ENV ?= local
-
-# スキーマSQLを生成（Goモデルから）
-generate-schema:
-	docker exec -i $(BACKEND_CONTAINER_NAME) go run cmd/schema/main.go
 
 # マイグレーションの差分ファイルを生成
 # 使用例: make migrate-diff NAME=create_todos
@@ -56,14 +72,6 @@ migrate-validate:
 		--env $(ATLAS_ENV) \
 		--config file://atlas.hcl
 
-# 初回セットアップ（スキーマ生成 + 初回マイグレーション作成）
-migrate-init:
-	@echo "📋 Generating schema-gen.sql..."
-	@$(MAKE) schema-generate
-	@echo "📝 Creating initial migration..."
-	@$(MAKE) migrate-diff NAME=init
-	@echo "✅ Migration initialized. Run 'make migrate-apply' to apply."
-
 # atlas_dev データベースを作成
 create-atlas-dev-db:
 	docker exec -i go_todo_db psql -U user -d postgres -c "CREATE DATABASE atlas_dev;"
@@ -81,6 +89,18 @@ migrate-down:
 		--env $(ATLAS_ENV) \
 		--config file://atlas.hcl
 
+# =============================================================================
+# sqlc関連
+# =============================================================================
+
+# sqlcコード生成
+sqlc-generate:
+	docker exec -i $(BACKEND_CONTAINER_NAME) sqlc generate
+
+# =============================================================================
+# シード
+# =============================================================================
+
 # シードを実行
 seed:
 	docker exec -i $(BACKEND_CONTAINER_NAME) go run cmd/seed/main.go
@@ -89,21 +109,10 @@ seed:
 seed-fresh:
 	docker exec -i $(BACKEND_CONTAINER_NAME) go run cmd/seed/main.go -fresh
 
-# ローカル開発用
-# go library install
-## 複数のライブラリを指定する場合は、name="xxx yyy" のように""で囲んで実行すること
-go-add-library:
-	docker exec -it ${BACKEND_CONTAINER_NAME} sh -c "go get ${name}"
-## 依存関係の整理
-go-mod-tidy:
-	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go mod tidy"
-## テスト
-test:
-	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "go test -v ./..."
-lint:
-	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "staticcheck ./..."
+# =============================================================================
+# OpenAPI生成（CUE → YAML → Go）
+# =============================================================================
 
-## OpenAPI生成（CUE → YAML → Go）
 # CUEファイルのフォーマット
 cue-fmt:
 	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "cd /app/openapi/cue && cue fmt api.cue"
@@ -120,6 +129,20 @@ openapi-gen:
 api-gen:
 	docker exec -i ${BACKEND_CONTAINER_NAME} sh -c "cd /app/openapi && oapi-codegen --config oapi-codegen.yaml openapi.yaml"
 
-# 全て生成（CUE → OpenAPI YAML → Go）
-generate: cue-fmt cue-vet openapi-gen api-gen
-	@echo "Generated OpenAPI spec and Go code"
+# =============================================================================
+# 一括コマンド
+# =============================================================================
+
+# 全コード生成（OpenAPI + sqlc）
+generate: cue-fmt cue-vet openapi-gen api-gen sqlc-generate
+	@echo "✅ All code generated"
+
+# スキーマ変更時の一括処理
+schema-update:
+	@if [ -z "$(NAME)" ]; then \
+		echo "❌ Error: NAME is required. Usage: make schema-update NAME=migration_name"; \
+		exit 1; \
+	fi
+	$(MAKE) migrate-diff NAME=$(NAME)
+	$(MAKE) sqlc-generate
+	@echo "✅ Schema updated"

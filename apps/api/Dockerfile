@@ -14,6 +14,7 @@ RUN go mod tidy && \
     go install github.com/cosmtrek/air@v1.46.0 && \
     go install honnef.co/go/tools/cmd/staticcheck@latest && \
     go install cuelang.org/go/cmd/cue@latest && \
-    go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+    go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest && \
+    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
 CMD ["air", "-c", ".air.toml"]

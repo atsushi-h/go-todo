@@ -2,55 +2,78 @@ package service
 
 import (
 	"context"
+	"errors"
 
-	"go-todo/internal/model"
-	"go-todo/internal/repository"
+	"go-todo/db/sqlc"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/markbates/goth"
 )
 
+var ErrUserNotFound = errors.New("user not found")
+
 type UserService struct {
-	repo repository.UserRepository
+	queries *sqlc.Queries
 }
 
-func NewUserService(repo repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(queries *sqlc.Queries) *UserService {
+	return &UserService{queries: queries}
 }
 
-// OAuthユーザーを検索または作成
-func (s *UserService) FindOrCreateFromOAuth(ctx context.Context, gothUser goth.User) (*model.User, error) {
+func (s *UserService) FindOrCreateFromOAuth(ctx context.Context, gothUser goth.User) (*sqlc.User, error) {
 	// 既存ユーザーを検索
-	user, err := s.repo.FindByProviderID(ctx, gothUser.Provider, gothUser.UserID)
+	user, err := s.queries.GetUserByProviderID(ctx, sqlc.GetUserByProviderIDParams{
+		Provider:   gothUser.Provider,
+		ProviderID: gothUser.UserID,
+	})
+
 	if err == nil {
 		// 既存ユーザーの情報を更新
-		user.Name = gothUser.Name
-		user.AvatarURL = gothUser.AvatarURL
-		if err := s.repo.Update(ctx, user); err != nil {
+		var avatarURL *string
+		if gothUser.AvatarURL != "" {
+			avatarURL = &gothUser.AvatarURL
+		}
+		updated, err := s.queries.UpdateUser(ctx, sqlc.UpdateUserParams{
+			ID:        user.ID,
+			Name:      gothUser.Name,
+			AvatarUrl: avatarURL,
+		})
+		if err != nil {
 			return nil, err
 		}
-		return user, nil
+		return &updated, nil
 	}
 
-	if err != repository.ErrUserNotFound {
+	if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
 
 	// 新規ユーザー作成
-	user = &model.User{
+	var avatarURL *string
+	if gothUser.AvatarURL != "" {
+		avatarURL = &gothUser.AvatarURL
+	}
+	newUser, err := s.queries.CreateUser(ctx, sqlc.CreateUserParams{
 		Email:      gothUser.Email,
 		Name:       gothUser.Name,
-		AvatarURL:  gothUser.AvatarURL,
+		AvatarUrl:  avatarURL,
 		Provider:   gothUser.Provider,
 		ProviderID: gothUser.UserID,
-	}
-
-	if err := s.repo.Create(ctx, user); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	return user, nil
+	return &newUser, nil
 }
 
-func (s *UserService) GetByID(ctx context.Context, id uint) (*model.User, error) {
-	return s.repo.FindByID(ctx, id)
+func (s *UserService) GetByID(ctx context.Context, id int64) (*sqlc.User, error) {
+	user, err := s.queries.GetUserByID(ctx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
