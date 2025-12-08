@@ -12,19 +12,19 @@ import (
 var ErrTodoNotFound = errors.New("todo not found")
 
 type TodoService struct {
-	querier sqlc.Querier
+	repo TodoRepository
 }
 
-func NewTodoService(querier sqlc.Querier) *TodoService {
-	return &TodoService{querier: querier}
+func NewTodoService(repo TodoRepository) *TodoService {
+	return &TodoService{repo: repo}
 }
 
 func (s *TodoService) GetAllTodos(ctx context.Context, userID int64) ([]sqlc.Todo, error) {
-	return s.querier.ListTodosByUser(ctx, userID)
+	return s.repo.ListTodosByUser(ctx, userID)
 }
 
 func (s *TodoService) GetTodoByID(ctx context.Context, id, userID int64) (*sqlc.Todo, error) {
-	todo, err := s.querier.GetTodoByID(ctx, sqlc.GetTodoByIDParams{
+	todo, err := s.repo.GetTodoByID(ctx, sqlc.GetTodoByIDParams{
 		ID:     id,
 		UserID: userID,
 	})
@@ -38,7 +38,7 @@ func (s *TodoService) GetTodoByID(ctx context.Context, id, userID int64) (*sqlc.
 }
 
 func (s *TodoService) CreateTodo(ctx context.Context, userID int64, title string, description *string) (*sqlc.Todo, error) {
-	todo, err := s.querier.CreateTodo(ctx, sqlc.CreateTodoParams{
+	todo, err := s.repo.CreateTodo(ctx, sqlc.CreateTodoParams{
 		UserID:      userID,
 		Title:       title,
 		Description: description,
@@ -50,7 +50,7 @@ func (s *TodoService) CreateTodo(ctx context.Context, userID int64, title string
 }
 
 func (s *TodoService) UpdateTodo(ctx context.Context, id, userID int64, title, description *string, completed *bool) (*sqlc.Todo, error) {
-	todo, err := s.querier.UpdateTodo(ctx, sqlc.UpdateTodoParams{
+	todo, err := s.repo.UpdateTodo(ctx, sqlc.UpdateTodoParams{
 		ID:          id,
 		UserID:      userID,
 		Title:       title,
@@ -67,7 +67,7 @@ func (s *TodoService) UpdateTodo(ctx context.Context, id, userID int64, title, d
 }
 
 func (s *TodoService) DeleteTodo(ctx context.Context, id, userID int64) error {
-	return s.querier.DeleteTodo(ctx, sqlc.DeleteTodoParams{
+	return s.repo.DeleteTodo(ctx, sqlc.DeleteTodoParams{
 		ID:     id,
 		UserID: userID,
 	})
