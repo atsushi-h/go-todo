@@ -1,0 +1,9 @@
+with-expecter: true
+packages:
+  go-todo/internal/service:
+    interfaces:
+      TodoRepository:
+      UserRepository:
+    config:
+      dir: internal/service/mocks
+      outpkg: mocks

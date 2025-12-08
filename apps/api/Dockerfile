@@ -15,6 +15,7 @@ RUN go mod tidy && \
     go install honnef.co/go/tools/cmd/staticcheck@latest && \
     go install cuelang.org/go/cmd/cue@latest && \
     go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest && \
-    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest && \
+    go install github.com/vektra/mockery/v2@latest
 
 CMD ["air", "-c", ".air.toml"]
