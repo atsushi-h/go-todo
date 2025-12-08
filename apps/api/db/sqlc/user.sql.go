@@ -23,6 +23,11 @@ type CreateUserParams struct {
 	ProviderID string  `json:"provider_id"`
 }
 
+// CreateUser
+//
+//	INSERT INTO users (email, name, avatar_url, provider, provider_id)
+//	VALUES ($1, $2, $3, $4, $5)
+//	RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.Email,
@@ -49,6 +54,9 @@ const getUserByID = `-- name: GetUserByID :one
 SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users WHERE id = $1
 `
 
+// GetUserByID
+//
+//	SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users WHERE id = $1
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
@@ -75,6 +83,10 @@ type GetUserByProviderIDParams struct {
 	ProviderID string `json:"provider_id"`
 }
 
+// GetUserByProviderID
+//
+//	SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users
+//	WHERE provider = $1 AND provider_id = $2
 func (q *Queries) GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByProviderID, arg.Provider, arg.ProviderID)
 	var i User
@@ -107,6 +119,15 @@ type UpdateUserParams struct {
 	AvatarUrl *string `json:"avatar_url"`
 }
 
+// UpdateUser
+//
+//	UPDATE users
+//	SET
+//	    name = $2,
+//	    avatar_url = $3,
+//	    updated_at = NOW()
+//	WHERE id = $1
+//	RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Name, arg.AvatarUrl)
 	var i User
