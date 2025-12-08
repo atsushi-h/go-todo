@@ -13,16 +13,16 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 
 type UserService struct {
-	queries *sqlc.Queries
+	querier sqlc.Querier
 }
 
-func NewUserService(queries *sqlc.Queries) *UserService {
-	return &UserService{queries: queries}
+func NewUserService(querier sqlc.Querier) *UserService {
+	return &UserService{querier: querier}
 }
 
 func (s *UserService) FindOrCreateFromOAuth(ctx context.Context, gothUser goth.User) (*sqlc.User, error) {
 	// 既存ユーザーを検索
-	user, err := s.queries.GetUserByProviderID(ctx, sqlc.GetUserByProviderIDParams{
+	user, err := s.querier.GetUserByProviderID(ctx, sqlc.GetUserByProviderIDParams{
 		Provider:   gothUser.Provider,
 		ProviderID: gothUser.UserID,
 	})
@@ -33,7 +33,7 @@ func (s *UserService) FindOrCreateFromOAuth(ctx context.Context, gothUser goth.U
 		if gothUser.AvatarURL != "" {
 			avatarURL = &gothUser.AvatarURL
 		}
-		updated, err := s.queries.UpdateUser(ctx, sqlc.UpdateUserParams{
+		updated, err := s.querier.UpdateUser(ctx, sqlc.UpdateUserParams{
 			ID:        user.ID,
 			Name:      gothUser.Name,
 			AvatarUrl: avatarURL,
@@ -53,7 +53,7 @@ func (s *UserService) FindOrCreateFromOAuth(ctx context.Context, gothUser goth.U
 	if gothUser.AvatarURL != "" {
 		avatarURL = &gothUser.AvatarURL
 	}
-	newUser, err := s.queries.CreateUser(ctx, sqlc.CreateUserParams{
+	newUser, err := s.querier.CreateUser(ctx, sqlc.CreateUserParams{
 		Email:      gothUser.Email,
 		Name:       gothUser.Name,
 		AvatarUrl:  avatarURL,
@@ -68,7 +68,7 @@ func (s *UserService) FindOrCreateFromOAuth(ctx context.Context, gothUser goth.U
 }
 
 func (s *UserService) GetByID(ctx context.Context, id int64) (*sqlc.User, error) {
-	user, err := s.queries.GetUserByID(ctx, id)
+	user, err := s.querier.GetUserByID(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrUserNotFound
 	}

@@ -21,6 +21,11 @@ type CreateTodoParams struct {
 	Description *string `json:"description"`
 }
 
+// CreateTodo
+//
+//	INSERT INTO todos (user_id, title, description)
+//	VALUES ($1, $2, $3)
+//	RETURNING id, user_id, title, description, completed, created_at, updated_at
 func (q *Queries) CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error) {
 	row := q.db.QueryRow(ctx, createTodo, arg.UserID, arg.Title, arg.Description)
 	var i Todo
@@ -46,6 +51,10 @@ type DeleteTodoParams struct {
 	UserID int64 `json:"user_id"`
 }
 
+// DeleteTodo
+//
+//	DELETE FROM todos
+//	WHERE id = $1 AND user_id = $2
 func (q *Queries) DeleteTodo(ctx context.Context, arg DeleteTodoParams) error {
 	_, err := q.db.Exec(ctx, deleteTodo, arg.ID, arg.UserID)
 	return err
@@ -61,6 +70,10 @@ type GetTodoByIDParams struct {
 	UserID int64 `json:"user_id"`
 }
 
+// GetTodoByID
+//
+//	SELECT id, user_id, title, description, completed, created_at, updated_at FROM todos
+//	WHERE id = $1 AND user_id = $2
 func (q *Queries) GetTodoByID(ctx context.Context, arg GetTodoByIDParams) (Todo, error) {
 	row := q.db.QueryRow(ctx, getTodoByID, arg.ID, arg.UserID)
 	var i Todo
@@ -82,6 +95,11 @@ WHERE user_id = $1
 ORDER BY created_at DESC
 `
 
+// ListTodosByUser
+//
+//	SELECT id, user_id, title, description, completed, created_at, updated_at FROM todos
+//	WHERE user_id = $1
+//	ORDER BY created_at DESC
 func (q *Queries) ListTodosByUser(ctx context.Context, userID int64) ([]Todo, error) {
 	rows, err := q.db.Query(ctx, listTodosByUser, userID)
 	if err != nil {
@@ -129,6 +147,16 @@ type UpdateTodoParams struct {
 	Completed   *bool   `json:"completed"`
 }
 
+// UpdateTodo
+//
+//	UPDATE todos
+//	SET
+//	    title = COALESCE($3, title),
+//	    description = COALESCE($4, description),
+//	    completed = COALESCE($5, completed),
+//	    updated_at = NOW()
+//	WHERE id = $1 AND user_id = $2
+//	RETURNING id, user_id, title, description, completed, created_at, updated_at
 func (q *Queries) UpdateTodo(ctx context.Context, arg UpdateTodoParams) (Todo, error) {
 	row := q.db.QueryRow(ctx, updateTodo,
 		arg.ID,
