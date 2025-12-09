@@ -17,7 +17,9 @@ CREATE TABLE todos (
     description TEXT,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ DEFAULT NULL
 );
 
 CREATE INDEX idx_todos_user_id ON todos(user_id);
+CREATE INDEX idx_todos_deleted_at ON todos(deleted_at);
