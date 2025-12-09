@@ -13,7 +13,7 @@ type Querier interface {
 	//
 	//  INSERT INTO todos (user_id, title, description)
 	//  VALUES ($1, $2, $3)
-	//  RETURNING id, user_id, title, description, completed, created_at, updated_at
+	//  RETURNING id, user_id, title, description, completed, created_at, updated_at, deleted_at
 	CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error)
 	//CreateUser
 	//
@@ -23,13 +23,14 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	//DeleteTodo
 	//
-	//  DELETE FROM todos
-	//  WHERE id = $1 AND user_id = $2
+	//  UPDATE todos
+	//  SET deleted_at = NOW(), updated_at = NOW()
+	//  WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
 	DeleteTodo(ctx context.Context, arg DeleteTodoParams) error
 	//GetTodoByID
 	//
-	//  SELECT id, user_id, title, description, completed, created_at, updated_at FROM todos
-	//  WHERE id = $1 AND user_id = $2
+	//  SELECT id, user_id, title, description, completed, created_at, updated_at, deleted_at FROM todos
+	//  WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
 	GetTodoByID(ctx context.Context, arg GetTodoByIDParams) (Todo, error)
 	//GetUserByID
 	//
@@ -42,8 +43,8 @@ type Querier interface {
 	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error)
 	//ListTodosByUser
 	//
-	//  SELECT id, user_id, title, description, completed, created_at, updated_at FROM todos
-	//  WHERE user_id = $1
+	//  SELECT id, user_id, title, description, completed, created_at, updated_at, deleted_at FROM todos
+	//  WHERE user_id = $1 AND deleted_at IS NULL
 	//  ORDER BY created_at DESC
 	ListTodosByUser(ctx context.Context, userID int64) ([]Todo, error)
 	//UpdateTodo
@@ -54,8 +55,8 @@ type Querier interface {
 	//      description = COALESCE($4, description),
 	//      completed = COALESCE($5, completed),
 	//      updated_at = NOW()
-	//  WHERE id = $1 AND user_id = $2
-	//  RETURNING id, user_id, title, description, completed, created_at, updated_at
+	//  WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+	//  RETURNING id, user_id, title, description, completed, created_at, updated_at, deleted_at
 	UpdateTodo(ctx context.Context, arg UpdateTodoParams) (Todo, error)
 	//UpdateUser
 	//
