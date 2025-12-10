@@ -59,5 +59,15 @@ func (h *APIHandler) DeleteTodo(ctx context.Context, request gen.DeleteTodoReque
 	return h.todoHandler.DeleteTodo(ctx, request)
 }
 
+// BatchCompleteTodos - TodoHandlerに委譲
+func (h *APIHandler) BatchCompleteTodos(ctx context.Context, request gen.BatchCompleteTodosRequestObject) (gen.BatchCompleteTodosResponseObject, error) {
+	return h.todoHandler.BatchCompleteTodos(ctx, request)
+}
+
+// BatchDeleteTodos - TodoHandlerに委譲
+func (h *APIHandler) BatchDeleteTodos(ctx context.Context, request gen.BatchDeleteTodosRequestObject) (gen.BatchDeleteTodosResponseObject, error) {
+	return h.todoHandler.BatchDeleteTodos(ctx, request)
+}
+
 // コンパイル時にStrictServerInterfaceを実装していることを確認
 var _ gen.StrictServerInterface = (*APIHandler)(nil)

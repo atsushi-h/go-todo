@@ -9,6 +9,19 @@ import (
 )
 
 type Querier interface {
+	//BatchCompleteTodos
+	//
+	//  UPDATE todos
+	//  SET completed = TRUE, updated_at = NOW()
+	//  WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+	//  RETURNING id, user_id, title, description, completed, created_at, updated_at, deleted_at
+	BatchCompleteTodos(ctx context.Context, arg BatchCompleteTodosParams) ([]Todo, error)
+	//BatchDeleteTodos
+	//
+	//  UPDATE todos
+	//  SET deleted_at = NOW(), updated_at = NOW()
+	//  WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+	BatchDeleteTodos(ctx context.Context, arg BatchDeleteTodosParams) error
 	//CreateTodo
 	//
 	//  INSERT INTO todos (user_id, title, description)
@@ -32,6 +45,11 @@ type Querier interface {
 	//  SELECT id, user_id, title, description, completed, created_at, updated_at, deleted_at FROM todos
 	//  WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
 	GetTodoByID(ctx context.Context, arg GetTodoByIDParams) (Todo, error)
+	//GetTodosByIDs
+	//
+	//  SELECT id, user_id, title, description, completed, created_at, updated_at, deleted_at FROM todos
+	//  WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+	GetTodosByIDs(ctx context.Context, arg GetTodosByIDsParams) ([]Todo, error)
 	//GetUserByID
 	//
 	//  SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users WHERE id = $1

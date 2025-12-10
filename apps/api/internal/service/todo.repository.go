@@ -12,6 +12,9 @@ type TodoRepository interface {
 	CreateTodo(ctx context.Context, arg sqlc.CreateTodoParams) (sqlc.Todo, error)
 	UpdateTodo(ctx context.Context, arg sqlc.UpdateTodoParams) (sqlc.Todo, error)
 	DeleteTodo(ctx context.Context, arg sqlc.DeleteTodoParams) error
+	GetTodosByIDs(ctx context.Context, arg sqlc.GetTodosByIDsParams) ([]sqlc.Todo, error)
+	BatchCompleteTodos(ctx context.Context, arg sqlc.BatchCompleteTodosParams) ([]sqlc.Todo, error)
+	BatchDeleteTodos(ctx context.Context, arg sqlc.BatchDeleteTodosParams) error
 }
 
 // sqlc.Querier が TodoRepository を満たすことを保証

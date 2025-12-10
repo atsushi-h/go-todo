@@ -26,6 +26,29 @@ const (
 	CookieAuthScopes = "cookieAuth.Scopes"
 )
 
+// BatchCompleteResponse defines model for BatchCompleteResponse.
+type BatchCompleteResponse struct {
+	Failed    []BatchFailedItem `json:"failed"`
+	Succeeded []Todo            `json:"succeeded"`
+}
+
+// BatchDeleteResponse defines model for BatchDeleteResponse.
+type BatchDeleteResponse struct {
+	Failed    []BatchFailedItem `json:"failed"`
+	Succeeded []int64           `json:"succeeded"`
+}
+
+// BatchFailedItem defines model for BatchFailedItem.
+type BatchFailedItem struct {
+	Error string `json:"error"`
+	Id    int64  `json:"id"`
+}
+
+// BatchTodoRequest defines model for BatchTodoRequest.
+type BatchTodoRequest struct {
+	Ids []int64 `json:"ids"`
+}
+
 // CreateTodoRequest defines model for CreateTodoRequest.
 type CreateTodoRequest struct {
 	Description *string `json:"description,omitempty"`
@@ -69,6 +92,12 @@ type UpdateTodoRequest struct {
 // CreateTodoJSONRequestBody defines body for CreateTodo for application/json ContentType.
 type CreateTodoJSONRequestBody = CreateTodoRequest
 
+// BatchCompleteTodosJSONRequestBody defines body for BatchCompleteTodos for application/json ContentType.
+type BatchCompleteTodosJSONRequestBody = BatchTodoRequest
+
+// BatchDeleteTodosJSONRequestBody defines body for BatchDeleteTodos for application/json ContentType.
+type BatchDeleteTodosJSONRequestBody = BatchTodoRequest
+
 // UpdateTodoJSONRequestBody defines body for UpdateTodo for application/json ContentType.
 type UpdateTodoJSONRequestBody = UpdateTodoRequest
 
@@ -86,6 +115,12 @@ type ServerInterface interface {
 	// Create a new todo
 	// (POST /todos)
 	CreateTodo(ctx echo.Context) error
+	// Batch complete todos
+	// (POST /todos/batch/complete)
+	BatchCompleteTodos(ctx echo.Context) error
+	// Batch delete todos
+	// (POST /todos/batch/delete)
+	BatchDeleteTodos(ctx echo.Context) error
 	// Delete a todo
 	// (DELETE /todos/{id})
 	DeleteTodo(ctx echo.Context, id int) error
@@ -139,6 +174,28 @@ func (w *ServerInterfaceWrapper) CreateTodo(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CreateTodo(ctx)
+	return err
+}
+
+// BatchCompleteTodos converts echo context to params.
+func (w *ServerInterfaceWrapper) BatchCompleteTodos(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(CookieAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.BatchCompleteTodos(ctx)
+	return err
+}
+
+// BatchDeleteTodos converts echo context to params.
+func (w *ServerInterfaceWrapper) BatchDeleteTodos(ctx echo.Context) error {
+	var err error
+
+	ctx.Set(CookieAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.BatchDeleteTodos(ctx)
 	return err
 }
 
@@ -228,6 +285,8 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.GET(baseURL+"/health", wrapper.GetHealth)
 	router.GET(baseURL+"/todos", wrapper.ListTodos)
 	router.POST(baseURL+"/todos", wrapper.CreateTodo)
+	router.POST(baseURL+"/todos/batch/complete", wrapper.BatchCompleteTodos)
+	router.POST(baseURL+"/todos/batch/delete", wrapper.BatchDeleteTodos)
 	router.DELETE(baseURL+"/todos/:id", wrapper.DeleteTodo)
 	router.GET(baseURL+"/todos/:id", wrapper.GetTodo)
 	router.PUT(baseURL+"/todos/:id", wrapper.UpdateTodo)
@@ -338,6 +397,94 @@ func (response CreateTodo401JSONResponse) VisitCreateTodoResponse(w http.Respons
 type CreateTodo500JSONResponse ErrorResponse
 
 func (response CreateTodo500JSONResponse) VisitCreateTodoResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BatchCompleteTodosRequestObject struct {
+	Body *BatchCompleteTodosJSONRequestBody
+}
+
+type BatchCompleteTodosResponseObject interface {
+	VisitBatchCompleteTodosResponse(w http.ResponseWriter) error
+}
+
+type BatchCompleteTodos200JSONResponse BatchCompleteResponse
+
+func (response BatchCompleteTodos200JSONResponse) VisitBatchCompleteTodosResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BatchCompleteTodos400JSONResponse ErrorResponse
+
+func (response BatchCompleteTodos400JSONResponse) VisitBatchCompleteTodosResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BatchCompleteTodos401JSONResponse ErrorResponse
+
+func (response BatchCompleteTodos401JSONResponse) VisitBatchCompleteTodosResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BatchCompleteTodos500JSONResponse ErrorResponse
+
+func (response BatchCompleteTodos500JSONResponse) VisitBatchCompleteTodosResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BatchDeleteTodosRequestObject struct {
+	Body *BatchDeleteTodosJSONRequestBody
+}
+
+type BatchDeleteTodosResponseObject interface {
+	VisitBatchDeleteTodosResponse(w http.ResponseWriter) error
+}
+
+type BatchDeleteTodos200JSONResponse BatchDeleteResponse
+
+func (response BatchDeleteTodos200JSONResponse) VisitBatchDeleteTodosResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BatchDeleteTodos400JSONResponse ErrorResponse
+
+func (response BatchDeleteTodos400JSONResponse) VisitBatchDeleteTodosResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BatchDeleteTodos401JSONResponse ErrorResponse
+
+func (response BatchDeleteTodos401JSONResponse) VisitBatchDeleteTodosResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type BatchDeleteTodos500JSONResponse ErrorResponse
+
+func (response BatchDeleteTodos500JSONResponse) VisitBatchDeleteTodosResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -517,6 +664,12 @@ type StrictServerInterface interface {
 	// Create a new todo
 	// (POST /todos)
 	CreateTodo(ctx context.Context, request CreateTodoRequestObject) (CreateTodoResponseObject, error)
+	// Batch complete todos
+	// (POST /todos/batch/complete)
+	BatchCompleteTodos(ctx context.Context, request BatchCompleteTodosRequestObject) (BatchCompleteTodosResponseObject, error)
+	// Batch delete todos
+	// (POST /todos/batch/delete)
+	BatchDeleteTodos(ctx context.Context, request BatchDeleteTodosRequestObject) (BatchDeleteTodosResponseObject, error)
 	// Delete a todo
 	// (DELETE /todos/{id})
 	DeleteTodo(ctx context.Context, request DeleteTodoRequestObject) (DeleteTodoResponseObject, error)
@@ -638,6 +791,64 @@ func (sh *strictHandler) CreateTodo(ctx echo.Context) error {
 	return nil
 }
 
+// BatchCompleteTodos operation middleware
+func (sh *strictHandler) BatchCompleteTodos(ctx echo.Context) error {
+	var request BatchCompleteTodosRequestObject
+
+	var body BatchCompleteTodosJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.BatchCompleteTodos(ctx.Request().Context(), request.(BatchCompleteTodosRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BatchCompleteTodos")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(BatchCompleteTodosResponseObject); ok {
+		return validResponse.VisitBatchCompleteTodosResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// BatchDeleteTodos operation middleware
+func (sh *strictHandler) BatchDeleteTodos(ctx echo.Context) error {
+	var request BatchDeleteTodosRequestObject
+
+	var body BatchDeleteTodosJSONRequestBody
+	if err := ctx.Bind(&body); err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.BatchDeleteTodos(ctx.Request().Context(), request.(BatchDeleteTodosRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BatchDeleteTodos")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(BatchDeleteTodosResponseObject); ok {
+		return validResponse.VisitBatchDeleteTodosResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // DeleteTodo operation middleware
 func (sh *strictHandler) DeleteTodo(ctx echo.Context, id int) error {
 	var request DeleteTodoRequestObject
@@ -722,24 +933,28 @@ func (sh *strictHandler) UpdateTodo(ctx echo.Context, id int) error {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"U/AgIpNDPfPR/L8AAAD//4NaTvwDIgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
