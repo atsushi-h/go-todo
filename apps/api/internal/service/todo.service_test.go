@@ -327,6 +327,186 @@ func TestTodoService_DeleteTodo(t *testing.T) {
 	})
 }
 
+func TestTodoService_BatchCompleteTodos(t *testing.T) {
+	t.Run("全てのTodoが存在する場合", func(t *testing.T) {
+		mockRepo := mocks.NewMockTodoRepository(t)
+		svc := NewTodoService(mockRepo)
+		ctx := context.Background()
+		userID := int64(1)
+		ids := []int64{1, 2}
+
+		existingTodos := []sqlc.Todo{
+			{ID: 1, UserID: userID, Completed: false},
+			{ID: 2, UserID: userID, Completed: false},
+		}
+		completedTodos := []sqlc.Todo{
+			{ID: 1, UserID: userID, Completed: true},
+			{ID: 2, UserID: userID, Completed: true},
+		}
+
+		mockRepo.EXPECT().
+			GetTodosByIDs(ctx, mock.Anything).
+			Return(existingTodos, nil)
+		mockRepo.EXPECT().
+			BatchCompleteTodos(ctx, mock.Anything).
+			Return(completedTodos, nil)
+
+		result, err := svc.BatchCompleteTodos(ctx, userID, ids)
+
+		assert.NoError(t, err)
+		assert.Len(t, result.Succeeded, 2)
+		assert.Len(t, result.Failed, 0)
+	})
+
+	t.Run("一部のIDが存在しない場合", func(t *testing.T) {
+		mockRepo := mocks.NewMockTodoRepository(t)
+		svc := NewTodoService(mockRepo)
+		ctx := context.Background()
+		userID := int64(1)
+		ids := []int64{1, 999}
+
+		existingTodos := []sqlc.Todo{
+			{ID: 1, UserID: userID},
+		}
+		completedTodos := []sqlc.Todo{
+			{ID: 1, UserID: userID, Completed: true},
+		}
+
+		mockRepo.EXPECT().
+			GetTodosByIDs(ctx, mock.Anything).
+			Return(existingTodos, nil)
+		mockRepo.EXPECT().
+			BatchCompleteTodos(ctx, mock.Anything).
+			Return(completedTodos, nil)
+
+		result, err := svc.BatchCompleteTodos(ctx, userID, ids)
+
+		assert.NoError(t, err)
+		assert.Len(t, result.Succeeded, 1)
+		assert.Len(t, result.Failed, 1)
+		assert.Equal(t, int64(999), result.Failed[0].ID)
+	})
+}
+
+func TestTodoService_BatchDeleteTodos(t *testing.T) {
+	t.Run("全てのTodoが存在する場合", func(t *testing.T) {
+		mockRepo := mocks.NewMockTodoRepository(t)
+		svc := NewTodoService(mockRepo)
+		ctx := context.Background()
+		userID := int64(1)
+		ids := []int64{1, 2}
+
+		existingTodos := []sqlc.Todo{
+			{ID: 1, UserID: userID},
+			{ID: 2, UserID: userID},
+		}
+
+		mockRepo.EXPECT().
+			GetTodosByIDs(ctx, mock.Anything).
+			Return(existingTodos, nil)
+		mockRepo.EXPECT().
+			BatchDeleteTodos(ctx, mock.Anything).
+			Return(nil)
+
+		result, err := svc.BatchDeleteTodos(ctx, userID, ids)
+
+		assert.NoError(t, err)
+		assert.Len(t, result.Succeeded, 2)
+		assert.Len(t, result.Failed, 0)
+		assert.ElementsMatch(t, []int64{1, 2}, result.Succeeded)
+	})
+
+	t.Run("一部のIDが存在しない場合", func(t *testing.T) {
+		mockRepo := mocks.NewMockTodoRepository(t)
+		svc := NewTodoService(mockRepo)
+		ctx := context.Background()
+		userID := int64(1)
+		ids := []int64{1, 999}
+
+		existingTodos := []sqlc.Todo{
+			{ID: 1, UserID: userID},
+		}
+
+		mockRepo.EXPECT().
+			GetTodosByIDs(ctx, mock.Anything).
+			Return(existingTodos, nil)
+		mockRepo.EXPECT().
+			BatchDeleteTodos(ctx, mock.Anything).
+			Return(nil)
+
+		result, err := svc.BatchDeleteTodos(ctx, userID, ids)
+
+		assert.NoError(t, err)
+		assert.Len(t, result.Succeeded, 1)
+		assert.Equal(t, int64(1), result.Succeeded[0])
+		assert.Len(t, result.Failed, 1)
+		assert.Equal(t, int64(999), result.Failed[0].ID)
+		assert.Equal(t, "Todo not found", result.Failed[0].Error)
+	})
+
+	t.Run("全てのIDが存在しない場合", func(t *testing.T) {
+		mockRepo := mocks.NewMockTodoRepository(t)
+		svc := NewTodoService(mockRepo)
+		ctx := context.Background()
+		userID := int64(1)
+		ids := []int64{998, 999}
+
+		mockRepo.EXPECT().
+			GetTodosByIDs(ctx, mock.Anything).
+			Return([]sqlc.Todo{}, nil)
+
+		result, err := svc.BatchDeleteTodos(ctx, userID, ids)
+
+		assert.NoError(t, err)
+		assert.Len(t, result.Succeeded, 0)
+		assert.Len(t, result.Failed, 2)
+	})
+
+	t.Run("GetTodosByIDsでエラーが発生した場合", func(t *testing.T) {
+		mockRepo := mocks.NewMockTodoRepository(t)
+		svc := NewTodoService(mockRepo)
+		ctx := context.Background()
+		userID := int64(1)
+		ids := []int64{1, 2}
+		dbErr := errors.New("database error")
+
+		mockRepo.EXPECT().
+			GetTodosByIDs(ctx, mock.Anything).
+			Return(nil, dbErr)
+
+		result, err := svc.BatchDeleteTodos(ctx, userID, ids)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+	})
+
+	t.Run("BatchDeleteTodosでエラーが発生した場合", func(t *testing.T) {
+		mockRepo := mocks.NewMockTodoRepository(t)
+		svc := NewTodoService(mockRepo)
+		ctx := context.Background()
+		userID := int64(1)
+		ids := []int64{1, 2}
+		dbErr := errors.New("database error")
+
+		existingTodos := []sqlc.Todo{
+			{ID: 1, UserID: userID},
+			{ID: 2, UserID: userID},
+		}
+
+		mockRepo.EXPECT().
+			GetTodosByIDs(ctx, mock.Anything).
+			Return(existingTodos, nil)
+		mockRepo.EXPECT().
+			BatchDeleteTodos(ctx, mock.Anything).
+			Return(dbErr)
+
+		result, err := svc.BatchDeleteTodos(ctx, userID, ids)
+
+		assert.Nil(t, result)
+		assert.Error(t, err)
+	})
+}
+
 // ヘルパー関数
 func ptrString(s string) *string {
 	return &s

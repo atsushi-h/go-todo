@@ -26,3 +26,18 @@ RETURNING *;
 UPDATE todos
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL;
+
+-- name: GetTodosByIDs :many
+SELECT * FROM todos
+WHERE id = ANY(@ids::bigint[]) AND user_id = @user_id AND deleted_at IS NULL;
+
+-- name: BatchCompleteTodos :many
+UPDATE todos
+SET completed = TRUE, updated_at = NOW()
+WHERE id = ANY(@ids::bigint[]) AND user_id = @user_id AND deleted_at IS NULL
+RETURNING *;
+
+-- name: BatchDeleteTodos :exec
+UPDATE todos
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = ANY(@ids::bigint[]) AND user_id = @user_id AND deleted_at IS NULL;

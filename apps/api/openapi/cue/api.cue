@@ -59,6 +59,68 @@ servers: [{
 	}
 }
 
+// Todoのバッチ処理関連
+#BatchTodoRequest: {
+	type: "object"
+	properties: {
+		ids: {
+			type: "array"
+			items: {
+				type:   "integer"
+				format: "int64"
+			}
+			minItems: 1
+			maxItems: 100
+		}
+	}
+	required: ["ids"]
+}
+
+#BatchCompleteResponse: {
+	type: "object"
+	properties: {
+		succeeded: {
+			type: "array"
+			items: "$ref": "#/components/schemas/Todo"
+		}
+		failed: {
+			type: "array"
+			items: "$ref": "#/components/schemas/BatchFailedItem"
+		}
+	}
+	required: ["succeeded", "failed"]
+}
+
+#BatchDeleteResponse: {
+	type: "object"
+	properties: {
+		succeeded: {
+			type: "array"
+			items: {
+				type:   "integer"
+				format: "int64"
+			}
+		}
+		failed: {
+			type: "array"
+			items: "$ref": "#/components/schemas/BatchFailedItem"
+		}
+	}
+	required: ["succeeded", "failed"]
+}
+
+#BatchFailedItem: {
+	type: "object"
+	properties: {
+		id: {
+			type:   "integer"
+			format: "int64"
+		}
+		error: type: "string"
+	}
+	required: ["id", "error"]
+}
+
 #ErrorResponse: {
 	type: "object"
 	properties: message: type: "string"
@@ -268,16 +330,78 @@ paths: {
 			}
 		}
 	}
+	"/todos/batch/complete": post: {
+		summary:     "Batch complete todos"
+		description: "Mark multiple todos as completed"
+		operationId: "batchCompleteTodos"
+		tags: ["todos"]
+		security: [{cookieAuth: []}]
+		requestBody: {
+			required: true
+			content: "application/json": schema: "$ref": "#/components/schemas/BatchTodoRequest"
+		}
+		responses: {
+			"200": {
+				description: "Batch operation completed"
+				content: "application/json": schema: "$ref": "#/components/schemas/BatchCompleteResponse"
+			}
+			"400": {
+				description: "Bad request"
+				content: "application/json": schema: "$ref": "#/components/schemas/ErrorResponse"
+			}
+			"401": {
+				description: "Unauthorized"
+				content: "application/json": schema: "$ref": "#/components/schemas/ErrorResponse"
+			}
+			"500": {
+				description: "Internal server error"
+				content: "application/json": schema: "$ref": "#/components/schemas/ErrorResponse"
+			}
+		}
+	}
+	"/todos/batch/delete": post: {
+		summary:     "Batch delete todos"
+		description: "Soft delete multiple todos"
+		operationId: "batchDeleteTodos"
+		tags: ["todos"]
+		security: [{cookieAuth: []}]
+		requestBody: {
+			required: true
+			content: "application/json": schema: "$ref": "#/components/schemas/BatchTodoRequest"
+		}
+		responses: {
+			"200": {
+				description: "Batch operation completed"
+				content: "application/json": schema: "$ref": "#/components/schemas/BatchDeleteResponse"
+			}
+			"400": {
+				description: "Bad request"
+				content: "application/json": schema: "$ref": "#/components/schemas/ErrorResponse"
+			}
+			"401": {
+				description: "Unauthorized"
+				content: "application/json": schema: "$ref": "#/components/schemas/ErrorResponse"
+			}
+			"500": {
+				description: "Internal server error"
+				content: "application/json": schema: "$ref": "#/components/schemas/ErrorResponse"
+			}
+		}
+	}
 }
 
 components: {
 	schemas: {
-		Todo:              #Todo
-		CreateTodoRequest: #CreateTodoRequest
-		UpdateTodoRequest: #UpdateTodoRequest
-		ErrorResponse:     #ErrorResponse
-		HealthResponse:    #HealthResponse
-		InfoResponse:      #InfoResponse
+		Todo:                  #Todo
+		CreateTodoRequest:     #CreateTodoRequest
+		UpdateTodoRequest:     #UpdateTodoRequest
+		BatchTodoRequest:      #BatchTodoRequest
+		BatchCompleteResponse: #BatchCompleteResponse
+		BatchDeleteResponse:   #BatchDeleteResponse
+		BatchFailedItem:       #BatchFailedItem
+		ErrorResponse:         #ErrorResponse
+		HealthResponse:        #HealthResponse
+		InfoResponse:          #InfoResponse
 	}
 	securitySchemes: cookieAuth: {
 		type: "apiKey"

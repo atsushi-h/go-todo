@@ -9,6 +9,74 @@ import (
 	"context"
 )
 
+const batchCompleteTodos = `-- name: BatchCompleteTodos :many
+UPDATE todos
+SET completed = TRUE, updated_at = NOW()
+WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+RETURNING id, user_id, title, description, completed, created_at, updated_at, deleted_at
+`
+
+type BatchCompleteTodosParams struct {
+	Ids    []int64 `json:"ids"`
+	UserID int64   `json:"user_id"`
+}
+
+// BatchCompleteTodos
+//
+//	UPDATE todos
+//	SET completed = TRUE, updated_at = NOW()
+//	WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+//	RETURNING id, user_id, title, description, completed, created_at, updated_at, deleted_at
+func (q *Queries) BatchCompleteTodos(ctx context.Context, arg BatchCompleteTodosParams) ([]Todo, error) {
+	rows, err := q.db.Query(ctx, batchCompleteTodos, arg.Ids, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Todo{}
+	for rows.Next() {
+		var i Todo
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.Description,
+			&i.Completed,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const batchDeleteTodos = `-- name: BatchDeleteTodos :exec
+UPDATE todos
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+`
+
+type BatchDeleteTodosParams struct {
+	Ids    []int64 `json:"ids"`
+	UserID int64   `json:"user_id"`
+}
+
+// BatchDeleteTodos
+//
+//	UPDATE todos
+//	SET deleted_at = NOW(), updated_at = NOW()
+//	WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+func (q *Queries) BatchDeleteTodos(ctx context.Context, arg BatchDeleteTodosParams) error {
+	_, err := q.db.Exec(ctx, batchDeleteTodos, arg.Ids, arg.UserID)
+	return err
+}
+
 const createTodo = `-- name: CreateTodo :one
 INSERT INTO todos (user_id, title, description)
 VALUES ($1, $2, $3)
@@ -91,6 +159,49 @@ func (q *Queries) GetTodoByID(ctx context.Context, arg GetTodoByIDParams) (Todo,
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const getTodosByIDs = `-- name: GetTodosByIDs :many
+SELECT id, user_id, title, description, completed, created_at, updated_at, deleted_at FROM todos
+WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+`
+
+type GetTodosByIDsParams struct {
+	Ids    []int64 `json:"ids"`
+	UserID int64   `json:"user_id"`
+}
+
+// GetTodosByIDs
+//
+//	SELECT id, user_id, title, description, completed, created_at, updated_at, deleted_at FROM todos
+//	WHERE id = ANY($1::bigint[]) AND user_id = $2 AND deleted_at IS NULL
+func (q *Queries) GetTodosByIDs(ctx context.Context, arg GetTodosByIDsParams) ([]Todo, error) {
+	rows, err := q.db.Query(ctx, getTodosByIDs, arg.Ids, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Todo{}
+	for rows.Next() {
+		var i Todo
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.Description,
+			&i.Completed,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listTodosByUser = `-- name: ListTodosByUser :many

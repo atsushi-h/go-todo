@@ -11,6 +11,22 @@ import (
 
 var ErrTodoNotFound = errors.New("todo not found")
 
+// バッチ処理の結果
+type BatchCompleteResult struct {
+	Succeeded []sqlc.Todo
+	Failed    []BatchFailedItem
+}
+
+type BatchDeleteResult struct {
+	Succeeded []int64
+	Failed    []BatchFailedItem
+}
+
+type BatchFailedItem struct {
+	ID    int64
+	Error string
+}
+
 type TodoService struct {
 	repo TodoRepository
 }
@@ -71,4 +87,100 @@ func (s *TodoService) DeleteTodo(ctx context.Context, id, userID int64) error {
 		ID:     id,
 		UserID: userID,
 	})
+}
+
+func (s *TodoService) BatchCompleteTodos(ctx context.Context, userID int64, ids []int64) (*BatchCompleteResult, error) {
+	result := &BatchCompleteResult{
+		Succeeded: []sqlc.Todo{},
+		Failed:    []BatchFailedItem{},
+	}
+
+	// 存在チェック
+	existingTodos, err := s.repo.GetTodosByIDs(ctx, sqlc.GetTodosByIDsParams{
+		Ids:    ids,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// 存在するIDのマップを作成
+	existingIDMap := make(map[int64]bool)
+	for _, todo := range existingTodos {
+		existingIDMap[todo.ID] = true
+	}
+
+	// 存在しないIDを失敗として記録
+	var validIDs []int64
+	for _, id := range ids {
+		if existingIDMap[id] {
+			validIDs = append(validIDs, id)
+		} else {
+			result.Failed = append(result.Failed, BatchFailedItem{
+				ID:    id,
+				Error: "Todo not found",
+			})
+		}
+	}
+
+	// 有効なIDがある場合のみバッチ更新
+	if len(validIDs) > 0 {
+		completedTodos, err := s.repo.BatchCompleteTodos(ctx, sqlc.BatchCompleteTodosParams{
+			Ids:    validIDs,
+			UserID: userID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		result.Succeeded = completedTodos
+	}
+
+	return result, nil
+}
+
+func (s *TodoService) BatchDeleteTodos(ctx context.Context, userID int64, ids []int64) (*BatchDeleteResult, error) {
+	result := &BatchDeleteResult{
+		Succeeded: []int64{},
+		Failed:    []BatchFailedItem{},
+	}
+
+	// 存在チェック
+	existingTodos, err := s.repo.GetTodosByIDs(ctx, sqlc.GetTodosByIDsParams{
+		Ids:    ids,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	existingIDMap := make(map[int64]bool)
+	for _, todo := range existingTodos {
+		existingIDMap[todo.ID] = true
+	}
+
+	var validIDs []int64
+	for _, id := range ids {
+		if existingIDMap[id] {
+			validIDs = append(validIDs, id)
+		} else {
+			result.Failed = append(result.Failed, BatchFailedItem{
+				ID:    id,
+				Error: "Todo not found",
+			})
+		}
+	}
+
+	// バッチ削除実行
+	if len(validIDs) > 0 {
+		err := s.repo.BatchDeleteTodos(ctx, sqlc.BatchDeleteTodosParams{
+			Ids:    validIDs,
+			UserID: userID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		result.Succeeded = validIDs
+	}
+
+	return result, nil
 }

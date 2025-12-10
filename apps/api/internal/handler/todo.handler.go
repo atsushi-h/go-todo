@@ -134,3 +134,55 @@ func (h *TodoHandler) DeleteTodo(ctx context.Context, request gen.DeleteTodoRequ
 
 	return gen.DeleteTodo204Response{}, nil
 }
+
+// BatchCompleteTodos - Todoを一括完了
+func (h *TodoHandler) BatchCompleteTodos(ctx context.Context, request gen.BatchCompleteTodosRequestObject) (gen.BatchCompleteTodosResponseObject, error) {
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		return gen.BatchCompleteTodos401JSONResponse{Message: "Unauthorized"}, nil
+	}
+
+	if request.Body == nil || len(request.Body.Ids) == 0 {
+		return gen.BatchCompleteTodos400JSONResponse{Message: "IDs are required"}, nil
+	}
+
+	if len(request.Body.Ids) > 100 {
+		return gen.BatchCompleteTodos400JSONResponse{Message: "Too many IDs (max 100)"}, nil
+	}
+
+	result, err := h.service.BatchCompleteTodos(ctx, userID, request.Body.Ids)
+	if err != nil {
+		return gen.BatchCompleteTodos500JSONResponse{Message: "Internal server error"}, nil
+	}
+
+	return gen.BatchCompleteTodos200JSONResponse{
+		Succeeded: mapper.TodosToResponse(result.Succeeded),
+		Failed:    mapper.BatchFailedItemsToResponse(result.Failed),
+	}, nil
+}
+
+// BatchDeleteTodos - Todoを一括削除
+func (h *TodoHandler) BatchDeleteTodos(ctx context.Context, request gen.BatchDeleteTodosRequestObject) (gen.BatchDeleteTodosResponseObject, error) {
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		return gen.BatchDeleteTodos401JSONResponse{Message: "Unauthorized"}, nil
+	}
+
+	if request.Body == nil || len(request.Body.Ids) == 0 {
+		return gen.BatchDeleteTodos400JSONResponse{Message: "IDs are required"}, nil
+	}
+
+	if len(request.Body.Ids) > 100 {
+		return gen.BatchDeleteTodos400JSONResponse{Message: "Too many IDs (max 100)"}, nil
+	}
+
+	result, err := h.service.BatchDeleteTodos(ctx, userID, request.Body.Ids)
+	if err != nil {
+		return gen.BatchDeleteTodos500JSONResponse{Message: "Internal server error"}, nil
+	}
+
+	return gen.BatchDeleteTodos200JSONResponse{
+		Succeeded: result.Succeeded,
+		Failed:    mapper.BatchFailedItemsToResponse(result.Failed),
+	}, nil
+}

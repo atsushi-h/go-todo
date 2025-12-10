@@ -23,6 +23,112 @@ func (_m *MockTodoRepository) EXPECT() *MockTodoRepository_Expecter {
 	return &MockTodoRepository_Expecter{mock: &_m.Mock}
 }
 
+// BatchCompleteTodos provides a mock function with given fields: ctx, arg
+func (_m *MockTodoRepository) BatchCompleteTodos(ctx context.Context, arg sqlc.BatchCompleteTodosParams) ([]sqlc.Todo, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BatchCompleteTodos")
+	}
+
+	var r0 []sqlc.Todo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, sqlc.BatchCompleteTodosParams) ([]sqlc.Todo, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, sqlc.BatchCompleteTodosParams) []sqlc.Todo); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]sqlc.Todo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, sqlc.BatchCompleteTodosParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockTodoRepository_BatchCompleteTodos_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BatchCompleteTodos'
+type MockTodoRepository_BatchCompleteTodos_Call struct {
+	*mock.Call
+}
+
+// BatchCompleteTodos is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg sqlc.BatchCompleteTodosParams
+func (_e *MockTodoRepository_Expecter) BatchCompleteTodos(ctx interface{}, arg interface{}) *MockTodoRepository_BatchCompleteTodos_Call {
+	return &MockTodoRepository_BatchCompleteTodos_Call{Call: _e.mock.On("BatchCompleteTodos", ctx, arg)}
+}
+
+func (_c *MockTodoRepository_BatchCompleteTodos_Call) Run(run func(ctx context.Context, arg sqlc.BatchCompleteTodosParams)) *MockTodoRepository_BatchCompleteTodos_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(sqlc.BatchCompleteTodosParams))
+	})
+	return _c
+}
+
+func (_c *MockTodoRepository_BatchCompleteTodos_Call) Return(_a0 []sqlc.Todo, _a1 error) *MockTodoRepository_BatchCompleteTodos_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockTodoRepository_BatchCompleteTodos_Call) RunAndReturn(run func(context.Context, sqlc.BatchCompleteTodosParams) ([]sqlc.Todo, error)) *MockTodoRepository_BatchCompleteTodos_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BatchDeleteTodos provides a mock function with given fields: ctx, arg
+func (_m *MockTodoRepository) BatchDeleteTodos(ctx context.Context, arg sqlc.BatchDeleteTodosParams) error {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BatchDeleteTodos")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, sqlc.BatchDeleteTodosParams) error); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockTodoRepository_BatchDeleteTodos_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BatchDeleteTodos'
+type MockTodoRepository_BatchDeleteTodos_Call struct {
+	*mock.Call
+}
+
+// BatchDeleteTodos is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg sqlc.BatchDeleteTodosParams
+func (_e *MockTodoRepository_Expecter) BatchDeleteTodos(ctx interface{}, arg interface{}) *MockTodoRepository_BatchDeleteTodos_Call {
+	return &MockTodoRepository_BatchDeleteTodos_Call{Call: _e.mock.On("BatchDeleteTodos", ctx, arg)}
+}
+
+func (_c *MockTodoRepository_BatchDeleteTodos_Call) Run(run func(ctx context.Context, arg sqlc.BatchDeleteTodosParams)) *MockTodoRepository_BatchDeleteTodos_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(sqlc.BatchDeleteTodosParams))
+	})
+	return _c
+}
+
+func (_c *MockTodoRepository_BatchDeleteTodos_Call) Return(_a0 error) *MockTodoRepository_BatchDeleteTodos_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockTodoRepository_BatchDeleteTodos_Call) RunAndReturn(run func(context.Context, sqlc.BatchDeleteTodosParams) error) *MockTodoRepository_BatchDeleteTodos_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateTodo provides a mock function with given fields: ctx, arg
 func (_m *MockTodoRepository) CreateTodo(ctx context.Context, arg sqlc.CreateTodoParams) (sqlc.Todo, error) {
 	ret := _m.Called(ctx, arg)
@@ -180,6 +286,65 @@ func (_c *MockTodoRepository_GetTodoByID_Call) Return(_a0 sqlc.Todo, _a1 error) 
 }
 
 func (_c *MockTodoRepository_GetTodoByID_Call) RunAndReturn(run func(context.Context, sqlc.GetTodoByIDParams) (sqlc.Todo, error)) *MockTodoRepository_GetTodoByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetTodosByIDs provides a mock function with given fields: ctx, arg
+func (_m *MockTodoRepository) GetTodosByIDs(ctx context.Context, arg sqlc.GetTodosByIDsParams) ([]sqlc.Todo, error) {
+	ret := _m.Called(ctx, arg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTodosByIDs")
+	}
+
+	var r0 []sqlc.Todo
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, sqlc.GetTodosByIDsParams) ([]sqlc.Todo, error)); ok {
+		return rf(ctx, arg)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, sqlc.GetTodosByIDsParams) []sqlc.Todo); ok {
+		r0 = rf(ctx, arg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]sqlc.Todo)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, sqlc.GetTodosByIDsParams) error); ok {
+		r1 = rf(ctx, arg)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockTodoRepository_GetTodosByIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTodosByIDs'
+type MockTodoRepository_GetTodosByIDs_Call struct {
+	*mock.Call
+}
+
+// GetTodosByIDs is a helper method to define mock.On call
+//   - ctx context.Context
+//   - arg sqlc.GetTodosByIDsParams
+func (_e *MockTodoRepository_Expecter) GetTodosByIDs(ctx interface{}, arg interface{}) *MockTodoRepository_GetTodosByIDs_Call {
+	return &MockTodoRepository_GetTodosByIDs_Call{Call: _e.mock.On("GetTodosByIDs", ctx, arg)}
+}
+
+func (_c *MockTodoRepository_GetTodosByIDs_Call) Run(run func(ctx context.Context, arg sqlc.GetTodosByIDsParams)) *MockTodoRepository_GetTodosByIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(sqlc.GetTodosByIDsParams))
+	})
+	return _c
+}
+
+func (_c *MockTodoRepository_GetTodosByIDs_Call) Return(_a0 []sqlc.Todo, _a1 error) *MockTodoRepository_GetTodosByIDs_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockTodoRepository_GetTodosByIDs_Call) RunAndReturn(run func(context.Context, sqlc.GetTodosByIDsParams) ([]sqlc.Todo, error)) *MockTodoRepository_GetTodosByIDs_Call {
 	_c.Call.Return(run)
 	return _c
 }
