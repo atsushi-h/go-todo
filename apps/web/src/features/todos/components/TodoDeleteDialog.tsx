@@ -10,10 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getGetTodosQueryKey, type ModelTodo, useDeleteTodosId } from '../hooks'
+import { getListTodosQueryKey, type Todo, useDeleteTodo } from '../hooks'
 
 interface TodoDeleteDialogProps {
-  todo: ModelTodo | null
+  todo: Todo | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
@@ -21,16 +21,16 @@ interface TodoDeleteDialogProps {
 
 export function TodoDeleteDialog({ todo, open, onOpenChange, onSuccess }: TodoDeleteDialogProps) {
   const queryClient = useQueryClient()
-  const deleteMutation = useDeleteTodosId()
+  const deleteMutation = useDeleteTodo()
 
   const handleDelete = () => {
-    if (todo?.id === undefined) return
+    if (!todo) return
 
     deleteMutation.mutate(
       { id: todo.id },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetTodosQueryKey() })
+          queryClient.invalidateQueries({ queryKey: getListTodosQueryKey() })
           onSuccess()
         },
       },

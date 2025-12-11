@@ -1,12 +1,18 @@
 export type {
-  ModelCreateTodoRequest,
-  ModelTodo,
-  ModelUpdateTodoRequest,
+  BatchCompleteResponse,
+  BatchDeleteResponse,
+  BatchFailedItem,
+  BatchTodoRequest,
+  CreateTodoRequest,
+  Todo,
+  UpdateTodoRequest,
 } from '@/api/generated/todoAPI.schemas'
 export {
-  getGetTodosQueryKey,
-  useDeleteTodosId,
-  useGetTodos,
-  usePostTodos,
-  usePutTodosId,
+  getListTodosQueryKey,
+  useBatchCompleteTodos,
+  useBatchDeleteTodos,
+  useCreateTodo,
+  useDeleteTodo,
+  useListTodos,
+  useUpdateTodo,
 } from '@/api/generated/todos'

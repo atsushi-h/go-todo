@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { getGetTodosQueryKey, type ModelTodo, usePostTodos, usePutTodosId } from '../hooks'
+import { getListTodosQueryKey, type Todo, useCreateTodo, useUpdateTodo } from '../hooks'
 
 interface TodoFormProps {
-  todo?: ModelTodo
+  todo?: Todo
   onSuccess: () => void
   onCancel?: () => void
 }
@@ -19,8 +19,8 @@ export function TodoForm({ todo, onSuccess, onCancel }: TodoFormProps) {
   const [description, setDescription] = useState(todo?.description ?? '')
 
   const queryClient = useQueryClient()
-  const createMutation = usePostTodos()
-  const updateMutation = usePutTodosId()
+  const createMutation = useCreateTodo()
+  const updateMutation = useUpdateTodo()
 
   const isEditing = !!todo
   const isPending = createMutation.isPending || updateMutation.isPending
@@ -30,7 +30,7 @@ export function TodoForm({ todo, onSuccess, onCancel }: TodoFormProps) {
     e.preventDefault()
     if (!isValid) return
 
-    if (isEditing && todo?.id !== undefined) {
+    if (isEditing && todo) {
       updateMutation.mutate(
         {
           id: todo.id,
@@ -41,7 +41,7 @@ export function TodoForm({ todo, onSuccess, onCancel }: TodoFormProps) {
         },
         {
           onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getGetTodosQueryKey() })
+            queryClient.invalidateQueries({ queryKey: getListTodosQueryKey() })
             onSuccess()
           },
         },
@@ -56,7 +56,7 @@ export function TodoForm({ todo, onSuccess, onCancel }: TodoFormProps) {
         },
         {
           onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getGetTodosQueryKey() })
+            queryClient.invalidateQueries({ queryKey: getListTodosQueryKey() })
             setTitle('')
             setDescription('')
             onSuccess()

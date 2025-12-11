@@ -1,15 +1,17 @@
 'use client'
 
-import { type ModelTodo, useGetTodos } from '../hooks'
+import { type Todo, useListTodos } from '../hooks'
 import { TodoItem } from './TodoItem'
 
 interface TodoListProps {
-  onEdit: (todo: ModelTodo) => void
-  onDelete: (todo: ModelTodo) => void
+  onEdit: (todo: Todo) => void
+  onDelete: (todo: Todo) => void
+  selectedIds: Set<number>
+  onToggleSelection: (id: number) => void
 }
 
-export function TodoList({ onEdit, onDelete }: TodoListProps) {
-  const { data: todos, isLoading, error } = useGetTodos()
+export function TodoList({ onEdit, onDelete, selectedIds, onToggleSelection }: TodoListProps) {
+  const { data: todos, isLoading, error } = useListTodos()
 
   if (isLoading) {
     return <p className="text-muted-foreground">Loading...</p>
@@ -26,7 +28,14 @@ export function TodoList({ onEdit, onDelete }: TodoListProps) {
   return (
     <div className="space-y-3">
       {todos.map((todo) => (
-        <TodoItem key={todo.id} todo={todo} onEdit={onEdit} onDelete={onDelete} />
+        <TodoItem
+          key={todo.id}
+          todo={todo}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          isSelected={selectedIds.has(todo.id)}
+          onToggleSelection={onToggleSelection}
+        />
       ))}
     </div>
   )
