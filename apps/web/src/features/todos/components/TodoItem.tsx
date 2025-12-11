@@ -5,21 +5,21 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { getGetTodosQueryKey, type ModelTodo, usePutTodosId } from '../hooks'
+import { getListTodosQueryKey, type Todo, useUpdateTodo } from '../hooks'
 
 interface TodoItemProps {
-  todo: ModelTodo
-  onEdit: (todo: ModelTodo) => void
-  onDelete: (todo: ModelTodo) => void
+  todo: Todo
+  onEdit: (todo: Todo) => void
+  onDelete: (todo: Todo) => void
+  isSelected: boolean
+  onToggleSelection: (id: number) => void
 }
 
-export function TodoItem({ todo, onEdit, onDelete }: TodoItemProps) {
+export function TodoItem({ todo, onEdit, onDelete, isSelected, onToggleSelection }: TodoItemProps) {
   const queryClient = useQueryClient()
-  const updateMutation = usePutTodosId()
+  const updateMutation = useUpdateTodo()
 
   const handleToggleCompleted = () => {
-    if (todo.id === undefined) return
-
     updateMutation.mutate(
       {
         id: todo.id,
@@ -29,17 +29,22 @@ export function TodoItem({ todo, onEdit, onDelete }: TodoItemProps) {
       },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetTodosQueryKey() })
+          queryClient.invalidateQueries({ queryKey: getListTodosQueryKey() })
         },
       },
     )
   }
 
   return (
-    <Card className="py-4">
+    <Card className={`py-4 ${isSelected ? 'border-primary border-2' : ''}`}>
       <CardContent className="flex items-start gap-4">
         <Checkbox
-          checked={todo.completed ?? false}
+          checked={isSelected}
+          onCheckedChange={() => onToggleSelection(todo.id)}
+          className="mt-1"
+        />
+        <Checkbox
+          checked={todo.completed}
           onCheckedChange={handleToggleCompleted}
           disabled={updateMutation.isPending}
           className="mt-1"
