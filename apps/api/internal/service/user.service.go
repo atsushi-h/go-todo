@@ -3,21 +3,30 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go-todo/db/sqlc"
+	"go-todo/internal/database"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/markbates/goth"
 )
 
 var ErrUserNotFound = errors.New("user not found")
 
 type UserService struct {
-	repo UserRepository
+	repo      UserRepository
+	pool      *pgxpool.Pool
+	txManager database.TxManager
 }
 
-func NewUserService(repo UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo UserRepository, pool *pgxpool.Pool) *UserService {
+	return &UserService{
+		repo:      repo,
+		pool:      pool,
+		txManager: database.NewTxManager(pool),
+	}
 }
 
 func (s *UserService) FindOrCreateFromOAuth(ctx context.Context, gothUser goth.User) (*sqlc.User, error) {
@@ -76,4 +85,32 @@ func (s *UserService) GetByID(ctx context.Context, id int64) (*sqlc.User, error)
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (s *UserService) DeleteAccount(ctx context.Context, userID int64) error {
+	// ユーザー存在確認
+	_, err := s.repo.GetUserByID(ctx, userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrUserNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("get user: %w", err)
+	}
+
+	// トランザクション内で削除実行
+	return s.txManager.RunInTx(ctx, func(tx pgx.Tx) error {
+		queries := sqlc.New(tx)
+
+		// Step 1: ユーザーの全Todoをソフトデリート
+		if err := queries.DeleteTodosByUserID(ctx, userID); err != nil {
+			return fmt.Errorf("delete todos: %w", err)
+		}
+
+		// Step 2: ユーザーをソフトデリート
+		if err := queries.DeleteUser(ctx, userID); err != nil {
+			return fmt.Errorf("delete user: %w", err)
+		}
+
+		return nil
+	})
 }

@@ -88,3 +88,25 @@ func (h *AuthHandler) Me(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, mapper.UserToResponse(user))
 }
+
+func (h *AuthHandler) DeleteUserAccount(c echo.Context) error {
+	userID, ok := auth.GetUserIDFromContext(c.Request().Context())
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	if err := h.userService.DeleteAccount(c.Request().Context(), userID); err != nil {
+		if err == service.ErrUserNotFound {
+			return echo.NewHTTPError(http.StatusNotFound, "User not found")
+		}
+		log.Printf("Failed to delete user account (id=%d): %v", userID, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete account")
+	}
+
+	// セッションをクリア
+	if err := h.sessionManager.Clear(c.Response(), c.Request()); err != nil {
+		log.Printf("Warning: Failed to clear session after account deletion (id=%d): %v", userID, err)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}

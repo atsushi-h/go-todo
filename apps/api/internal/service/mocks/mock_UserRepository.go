@@ -80,6 +80,100 @@ func (_c *MockUserRepository_CreateUser_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// DeleteTodosByUserID provides a mock function with given fields: ctx, userID
+func (_m *MockUserRepository) DeleteTodosByUserID(ctx context.Context, userID int64) error {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteTodosByUserID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64) error); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockUserRepository_DeleteTodosByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteTodosByUserID'
+type MockUserRepository_DeleteTodosByUserID_Call struct {
+	*mock.Call
+}
+
+// DeleteTodosByUserID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID int64
+func (_e *MockUserRepository_Expecter) DeleteTodosByUserID(ctx interface{}, userID interface{}) *MockUserRepository_DeleteTodosByUserID_Call {
+	return &MockUserRepository_DeleteTodosByUserID_Call{Call: _e.mock.On("DeleteTodosByUserID", ctx, userID)}
+}
+
+func (_c *MockUserRepository_DeleteTodosByUserID_Call) Run(run func(ctx context.Context, userID int64)) *MockUserRepository_DeleteTodosByUserID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_DeleteTodosByUserID_Call) Return(_a0 error) *MockUserRepository_DeleteTodosByUserID_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockUserRepository_DeleteTodosByUserID_Call) RunAndReturn(run func(context.Context, int64) error) *MockUserRepository_DeleteTodosByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteUser provides a mock function with given fields: ctx, id
+func (_m *MockUserRepository) DeleteUser(ctx context.Context, id int64) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteUser")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockUserRepository_DeleteUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteUser'
+type MockUserRepository_DeleteUser_Call struct {
+	*mock.Call
+}
+
+// DeleteUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id int64
+func (_e *MockUserRepository_Expecter) DeleteUser(ctx interface{}, id interface{}) *MockUserRepository_DeleteUser_Call {
+	return &MockUserRepository_DeleteUser_Call{Call: _e.mock.On("DeleteUser", ctx, id)}
+}
+
+func (_c *MockUserRepository_DeleteUser_Call) Run(run func(ctx context.Context, id int64)) *MockUserRepository_DeleteUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_DeleteUser_Call) Return(_a0 error) *MockUserRepository_DeleteUser_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockUserRepository_DeleteUser_Call) RunAndReturn(run func(context.Context, int64) error) *MockUserRepository_DeleteUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUserByID provides a mock function with given fields: ctx, id
 func (_m *MockUserRepository) GetUserByID(ctx context.Context, id int64) (sqlc.User, error) {
 	ret := _m.Called(ctx, id)

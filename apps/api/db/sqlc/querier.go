@@ -32,7 +32,7 @@ type Querier interface {
 	//
 	//  INSERT INTO users (email, name, avatar_url, provider, provider_id)
 	//  VALUES ($1, $2, $3, $4, $5)
-	//  RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at
+	//  RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	//DeleteTodo
 	//
@@ -40,6 +40,18 @@ type Querier interface {
 	//  SET deleted_at = NOW(), updated_at = NOW()
 	//  WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
 	DeleteTodo(ctx context.Context, arg DeleteTodoParams) error
+	//DeleteTodosByUserID
+	//
+	//  UPDATE todos
+	//  SET deleted_at = NOW(), updated_at = NOW()
+	//  WHERE user_id = $1 AND deleted_at IS NULL
+	DeleteTodosByUserID(ctx context.Context, userID int64) error
+	//DeleteUser
+	//
+	//  UPDATE users
+	//  SET deleted_at = NOW(), updated_at = NOW()
+	//  WHERE id = $1 AND deleted_at IS NULL
+	DeleteUser(ctx context.Context, id int64) error
 	//GetTodoByID
 	//
 	//  SELECT id, user_id, title, description, completed, created_at, updated_at, deleted_at FROM todos
@@ -52,12 +64,12 @@ type Querier interface {
 	GetTodosByIDs(ctx context.Context, arg GetTodosByIDsParams) ([]Todo, error)
 	//GetUserByID
 	//
-	//  SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users WHERE id = $1
+	//  SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	//GetUserByProviderID
 	//
-	//  SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users
-	//  WHERE provider = $1 AND provider_id = $2
+	//  SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at FROM users
+	//  WHERE provider = $1 AND provider_id = $2 AND deleted_at IS NULL
 	GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error)
 	//ListTodosByUser
 	//
@@ -83,8 +95,8 @@ type Querier interface {
 	//      name = $2,
 	//      avatar_url = $3,
 	//      updated_at = NOW()
-	//  WHERE id = $1
-	//  RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at
+	//  WHERE id = $1 AND deleted_at IS NULL
+	//  RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 

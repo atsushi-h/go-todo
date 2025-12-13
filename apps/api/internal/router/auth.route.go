@@ -19,4 +19,7 @@ func SetupAuthRoutes(e *echo.Echo, authHandler *handler.AuthHandler, sm *auth.Se
 
 	// ユーザー情報取得（認証必要）
 	e.GET("/me", authHandler.Me, auth.RequireAuth(sm))
+
+	// ユーザー退会（認証必要）
+	e.DELETE("/users/me", authHandler.DeleteUserAccount, auth.RequireAuth(sm))
 }

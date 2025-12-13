@@ -18,7 +18,7 @@ import (
 func TestUserService_GetByID(t *testing.T) {
 	t.Run("正常系: Userを取得できる", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		userID := int64(1)
@@ -49,7 +49,7 @@ func TestUserService_GetByID(t *testing.T) {
 
 	t.Run("異常系: ErrUserNotFoundを返す", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		userID := int64(999)
@@ -66,7 +66,7 @@ func TestUserService_GetByID(t *testing.T) {
 
 	t.Run("異常系: その他のエラーをそのまま返す", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		userID := int64(1)
@@ -86,7 +86,7 @@ func TestUserService_GetByID(t *testing.T) {
 func TestUserService_FindOrCreateFromOAuth(t *testing.T) {
 	t.Run("正常系: 既存ユーザーを更新して返す", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		now := time.Now()
@@ -146,7 +146,7 @@ func TestUserService_FindOrCreateFromOAuth(t *testing.T) {
 
 	t.Run("正常系: 新規ユーザーを作成して返す", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		now := time.Now()
@@ -197,7 +197,7 @@ func TestUserService_FindOrCreateFromOAuth(t *testing.T) {
 
 	t.Run("正常系: AvatarURLが空の場合はnilで作成", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		now := time.Now()
@@ -247,7 +247,7 @@ func TestUserService_FindOrCreateFromOAuth(t *testing.T) {
 
 	t.Run("異常系: GetUserByProviderIDでエラー", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		dbErr := errors.New("database error")
@@ -272,7 +272,7 @@ func TestUserService_FindOrCreateFromOAuth(t *testing.T) {
 
 	t.Run("異常系: UpdateUserでエラー", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		now := time.Now()
@@ -318,7 +318,7 @@ func TestUserService_FindOrCreateFromOAuth(t *testing.T) {
 
 	t.Run("異常系: CreateUserでエラー", func(t *testing.T) {
 		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo)
+		svc := NewUserService(mockRepo, nil)
 
 		ctx := context.Background()
 		dbErr := errors.New("create error")
@@ -352,5 +352,41 @@ func TestUserService_FindOrCreateFromOAuth(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, dbErr)
+	})
+}
+
+func TestUserService_DeleteAccount(t *testing.T) {
+	t.Run("異常系: ユーザーが存在しない場合", func(t *testing.T) {
+		mockRepo := mocks.NewMockUserRepository(t)
+		svc := NewUserService(mockRepo, nil)
+
+		ctx := context.Background()
+		userID := int64(999)
+
+		mockRepo.EXPECT().
+			GetUserByID(ctx, userID).
+			Return(sqlc.User{}, pgx.ErrNoRows)
+
+		err := svc.DeleteAccount(ctx, userID)
+
+		assert.ErrorIs(t, err, ErrUserNotFound)
+	})
+
+	t.Run("異常系: GetUserByIDでその他のエラー", func(t *testing.T) {
+		mockRepo := mocks.NewMockUserRepository(t)
+		svc := NewUserService(mockRepo, nil)
+
+		ctx := context.Background()
+		userID := int64(1)
+		dbErr := errors.New("database error")
+
+		mockRepo.EXPECT().
+			GetUserByID(ctx, userID).
+			Return(sqlc.User{}, dbErr)
+
+		err := svc.DeleteAccount(ctx, userID)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "get user")
 	})
 }
