@@ -354,39 +354,3 @@ func TestUserService_FindOrCreateFromOAuth(t *testing.T) {
 		assert.ErrorIs(t, err, dbErr)
 	})
 }
-
-func TestUserService_DeleteAccount(t *testing.T) {
-	t.Run("異常系: ユーザーが存在しない場合", func(t *testing.T) {
-		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo, nil)
-
-		ctx := context.Background()
-		userID := int64(999)
-
-		mockRepo.EXPECT().
-			GetUserByID(ctx, userID).
-			Return(sqlc.User{}, pgx.ErrNoRows)
-
-		err := svc.DeleteAccount(ctx, userID)
-
-		assert.ErrorIs(t, err, ErrUserNotFound)
-	})
-
-	t.Run("異常系: GetUserByIDでその他のエラー", func(t *testing.T) {
-		mockRepo := mocks.NewMockUserRepository(t)
-		svc := NewUserService(mockRepo, nil)
-
-		ctx := context.Background()
-		userID := int64(1)
-		dbErr := errors.New("database error")
-
-		mockRepo.EXPECT().
-			GetUserByID(ctx, userID).
-			Return(sqlc.User{}, dbErr)
-
-		err := svc.DeleteAccount(ctx, userID)
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "get user")
-	})
-}

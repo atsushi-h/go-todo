@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,9 +28,11 @@ func (m *txManager) RunInTx(ctx context.Context, fn func(tx pgx.Tx) error) error
 
 	err = fn(tx)
 	if err != nil {
-		tx.Rollback(ctx) // 失敗したらロールバック
+		if rbErr := tx.Rollback(ctx); rbErr != nil {
+			return fmt.Errorf("transaction failed: %w, rollback failed: %v", err, rbErr)
+		}
 		return err
 	}
 
-	return tx.Commit(ctx) // 成功したらコミット
+	return tx.Commit(ctx)
 }

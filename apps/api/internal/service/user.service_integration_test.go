@@ -61,4 +61,31 @@ func TestUserService_DeleteAccount_Integration(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 1, count, "User should still exist in database")
 	})
+
+	t.Run("異常系: ユーザーが存在しない場合", func(t *testing.T) {
+		nonExistentUserID := int64(999999)
+
+		err := userService.DeleteAccount(ctx, nonExistentUserID)
+
+		assert.ErrorIs(t, err, ErrUserNotFound)
+	})
+
+	t.Run("異常系: 既に削除済みのユーザー", func(t *testing.T) {
+		// テストユーザー作成
+		user, err := queries.CreateUser(ctx, sqlc.CreateUserParams{
+			Email:      "already-deleted@example.com",
+			Name:       "Already Deleted",
+			Provider:   "test",
+			ProviderID: "test-already-" + time.Now().Format("20060102150405"),
+		})
+		require.NoError(t, err)
+
+		// 1回目の削除
+		err = userService.DeleteAccount(ctx, user.ID)
+		require.NoError(t, err)
+
+		// 2回目の削除（既に削除済み）
+		err = userService.DeleteAccount(ctx, user.ID)
+		assert.ErrorIs(t, err, ErrUserNotFound, "Already deleted user should return ErrUserNotFound")
+	})
 }

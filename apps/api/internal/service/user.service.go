@@ -88,25 +88,25 @@ func (s *UserService) GetByID(ctx context.Context, id int64) (*sqlc.User, error)
 }
 
 func (s *UserService) DeleteAccount(ctx context.Context, userID int64) error {
-	// ユーザー存在確認
-	_, err := s.repo.GetUserByID(ctx, userID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrUserNotFound
-	}
-	if err != nil {
-		return fmt.Errorf("get user: %w", err)
-	}
-
-	// トランザクション内で削除実行
+	// トランザクション内で存在確認と削除を実行
 	return s.txManager.RunInTx(ctx, func(tx pgx.Tx) error {
 		queries := sqlc.New(tx)
 
-		// Step 1: ユーザーの全Todoをソフトデリート
+		// Step 1: ユーザー存在確認（トランザクション内で行い、ロックを確保）
+		_, err := queries.GetUserByID(ctx, userID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("get user: %w", err)
+		}
+
+		// Step 2: ユーザーの全Todoをソフトデリート
 		if err := queries.DeleteTodosByUserID(ctx, userID); err != nil {
 			return fmt.Errorf("delete todos: %w", err)
 		}
 
-		// Step 2: ユーザーをソフトデリート
+		// Step 3: ユーザーをソフトデリート
 		if err := queries.DeleteUser(ctx, userID); err != nil {
 			return fmt.Errorf("delete user: %w", err)
 		}
