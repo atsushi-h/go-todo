@@ -12,7 +12,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, name, avatar_url, provider, provider_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at
+RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at
 `
 
 type CreateUserParams struct {
@@ -27,7 +27,7 @@ type CreateUserParams struct {
 //
 //	INSERT INTO users (email, name, avatar_url, provider, provider_id)
 //	VALUES ($1, $2, $3, $4, $5)
-//	RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at
+//	RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.Email,
@@ -46,17 +46,50 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.ProviderID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
+const deleteTodosByUserID = `-- name: DeleteTodosByUserID :exec
+UPDATE todos
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE user_id = $1 AND deleted_at IS NULL
+`
+
+// DeleteTodosByUserID
+//
+//	UPDATE todos
+//	SET deleted_at = NOW(), updated_at = NOW()
+//	WHERE user_id = $1 AND deleted_at IS NULL
+func (q *Queries) DeleteTodosByUserID(ctx context.Context, userID int64) error {
+	_, err := q.db.Exec(ctx, deleteTodosByUserID, userID)
+	return err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+UPDATE users
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+// DeleteUser
+//
+//	UPDATE users
+//	SET deleted_at = NOW(), updated_at = NOW()
+//	WHERE id = $1 AND deleted_at IS NULL
+func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
+	return err
+}
+
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL
 `
 
 // GetUserByID
 //
-//	SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users WHERE id = $1
+//	SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at FROM users WHERE id = $1 AND deleted_at IS NULL
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
@@ -69,13 +102,14 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.ProviderID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getUserByProviderID = `-- name: GetUserByProviderID :one
-SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users
-WHERE provider = $1 AND provider_id = $2
+SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at FROM users
+WHERE provider = $1 AND provider_id = $2 AND deleted_at IS NULL
 `
 
 type GetUserByProviderIDParams struct {
@@ -85,8 +119,8 @@ type GetUserByProviderIDParams struct {
 
 // GetUserByProviderID
 //
-//	SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at FROM users
-//	WHERE provider = $1 AND provider_id = $2
+//	SELECT id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at FROM users
+//	WHERE provider = $1 AND provider_id = $2 AND deleted_at IS NULL
 func (q *Queries) GetUserByProviderID(ctx context.Context, arg GetUserByProviderIDParams) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByProviderID, arg.Provider, arg.ProviderID)
 	var i User
@@ -99,6 +133,7 @@ func (q *Queries) GetUserByProviderID(ctx context.Context, arg GetUserByProvider
 		&i.ProviderID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -109,8 +144,8 @@ SET
     name = $2,
     avatar_url = $3,
     updated_at = NOW()
-WHERE id = $1
-RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at
 `
 
 type UpdateUserParams struct {
@@ -126,8 +161,8 @@ type UpdateUserParams struct {
 //	    name = $2,
 //	    avatar_url = $3,
 //	    updated_at = NOW()
-//	WHERE id = $1
-//	RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at
+//	WHERE id = $1 AND deleted_at IS NULL
+//	RETURNING id, email, name, avatar_url, provider, provider_id, created_at, updated_at, deleted_at
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.Name, arg.AvatarUrl)
 	var i User
@@ -140,6 +175,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.ProviderID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }

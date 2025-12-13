@@ -46,7 +46,7 @@ func main() {
 
 	// サービスの初期化
 	todoService := service.NewTodoService(queries)
-	userService := service.NewUserService(queries)
+	userService := service.NewUserService(queries, pool)
 
 	// ハンドラーの初期化
 	todoHandler := handler.NewTodoHandler(todoService)

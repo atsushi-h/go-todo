@@ -22,12 +22,13 @@ type Todo struct {
 }
 
 type User struct {
-	ID         int64     `json:"id"`
-	Email      string    `json:"email"`
-	Name       string    `json:"name"`
-	AvatarUrl  *string   `json:"avatar_url"`
-	Provider   string    `json:"provider"`
-	ProviderID string    `json:"provider_id"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID         int64              `json:"id"`
+	Email      string             `json:"email"`
+	Name       string             `json:"name"`
+	AvatarUrl  *string            `json:"avatar_url"`
+	Provider   string             `json:"provider"`
+	ProviderID string             `json:"provider_id"`
+	CreatedAt  time.Time          `json:"created_at"`
+	UpdatedAt  time.Time          `json:"updated_at"`
+	DeletedAt  pgtype.Timestamptz `json:"deleted_at"`
 }
