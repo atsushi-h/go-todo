@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"go-todo/internal/auth"
+	"go-todo/internal/config"
 	"go-todo/internal/gen"
 	"go-todo/internal/handler"
 
@@ -12,9 +13,9 @@ import (
 )
 
 // Echoインスタンスにルートを設定
-func SetupRoutes(e *echo.Echo, apiHandler *handler.APIHandler, authHandler *handler.AuthHandler, sm *auth.SessionManager) {
+func SetupRoutes(e *echo.Echo, apiHandler *handler.APIHandler, authHandler *handler.AuthHandler, sm *auth.SessionManager, frontendConfig config.FrontendConfig) {
 	// グローバルミドルウェア
-	e.Use(middleware.CORSWithConfig(CORSConfig()))
+	e.Use(middleware.CORSWithConfig(CORSConfig(frontendConfig)))
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
 

@@ -1,21 +1,16 @@
 package router
 
 import (
-	"os"
+	"go-todo/internal/config"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 // EchoのCORSミドルウェア設定
-func CORSConfig() middleware.CORSConfig {
-	allowedOrigin := os.Getenv("FRONTEND_URL")
-	if allowedOrigin == "" {
-		allowedOrigin = "http://localhost:3000"
-	}
-
+func CORSConfig(frontendConfig config.FrontendConfig) middleware.CORSConfig {
 	return middleware.CORSConfig{
-		AllowOrigins:     []string{allowedOrigin},
+		AllowOrigins:     []string{frontendConfig.URL},
 		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.OPTIONS},
 		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization},
 		AllowCredentials: true,
