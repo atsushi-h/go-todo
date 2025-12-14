@@ -34,6 +34,9 @@ func (c *Config) Validate() error {
 	if err := c.Frontend.Validate(); err != nil {
 		return fmt.Errorf("frontend config: %w", err)
 	}
+	if err := c.Cookie.Validate(); err != nil {
+		return fmt.Errorf("cookie config: %w", err)
+	}
 	return nil
 }
 
@@ -50,8 +53,8 @@ type DatabaseConfig struct {
 func (d *DatabaseConfig) DSN() string {
 	return fmt.Sprintf(
 		"postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		d.User,
-		d.Password,
+		url.QueryEscape(d.User),
+		url.QueryEscape(d.Password),
 		d.Host,
 		d.Port,
 		d.Database,
@@ -110,8 +113,12 @@ func (o *OAuthConfig) String() string {
 
 // Validate checks if the OAuth configuration is valid
 func (o *OAuthConfig) Validate() error {
-	if _, err := url.Parse(o.CallbackURL); err != nil {
+	u, err := url.Parse(o.CallbackURL)
+	if err != nil {
 		return fmt.Errorf("invalid callback URL: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("callback URL must use http or https scheme, got: %s", u.Scheme)
 	}
 	return nil
 }
@@ -141,8 +148,12 @@ type FrontendConfig struct {
 
 // Validate checks if the frontend configuration is valid
 func (f *FrontendConfig) Validate() error {
-	if _, err := url.Parse(f.URL); err != nil {
+	u, err := url.Parse(f.URL)
+	if err != nil {
 		return fmt.Errorf("invalid frontend URL: %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("frontend URL must use http or https scheme, got: %s", u.Scheme)
 	}
 	return nil
 }
@@ -150,6 +161,13 @@ func (f *FrontendConfig) Validate() error {
 // CookieConfig holds cookie security configuration
 type CookieConfig struct {
 	Secure bool `envconfig:"COOKIE_SECURE" default:"false"`
+}
+
+// Validate checks if the cookie configuration is valid
+func (c *CookieConfig) Validate() error {
+	// Currently no validation needed for boolean field,
+	// but method provided for consistency and future extensibility
+	return nil
 }
 
 // Load reads configuration from environment variables

@@ -9,15 +9,33 @@ import (
 )
 
 func TestDatabaseConfig_DSN(t *testing.T) {
-	cfg := DatabaseConfig{
-		Host:     "localhost",
-		Port:     5432,
-		Database: "testdb",
-		User:     "user",
-		Password: "pass",
-	}
-	expected := "postgres://user:pass@localhost:5432/testdb?sslmode=disable"
-	assert.Equal(t, expected, cfg.DSN())
+	t.Run("通常のパスワード", func(t *testing.T) {
+		cfg := DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			Database: "testdb",
+			User:     "user",
+			Password: "pass",
+		}
+		expected := "postgres://user:pass@localhost:5432/testdb?sslmode=disable"
+		assert.Equal(t, expected, cfg.DSN())
+	})
+
+	t.Run("特殊文字を含むパスワード", func(t *testing.T) {
+		cfg := DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			Database: "testdb",
+			User:     "user@domain",
+			Password: "p@ss:w/ord",
+		}
+		// 特殊文字がURLエンコードされていることを確認
+		dsn := cfg.DSN()
+		assert.Contains(t, dsn, "user%40domain")        // @ -> %40
+		assert.Contains(t, dsn, "p%40ss%3Aw%2Ford")     // @:/ -> %40%3A%2F
+		assert.NotContains(t, dsn, "user@domain")
+		assert.NotContains(t, dsn, "p@ss:w/ord")
+	})
 }
 
 func TestDatabaseConfig_String(t *testing.T) {
@@ -138,10 +156,13 @@ func TestOAuthConfig_Validate(t *testing.T) {
 		name        string
 		callbackURL string
 		wantErr     bool
+		errContains string
 	}{
-		{name: "valid URL", callbackURL: "http://localhost:4000/callback", wantErr: false},
+		{name: "valid HTTP URL", callbackURL: "http://localhost:4000/callback", wantErr: false},
 		{name: "valid HTTPS URL", callbackURL: "https://example.com/callback", wantErr: false},
-		{name: "invalid URL", callbackURL: "://invalid", wantErr: true},
+		{name: "invalid URL format", callbackURL: "://invalid", wantErr: true, errContains: "invalid callback URL"},
+		{name: "invalid scheme - ftp", callbackURL: "ftp://example.com/callback", wantErr: true, errContains: "must use http or https scheme"},
+		{name: "no scheme", callbackURL: "example.com/callback", wantErr: true, errContains: "must use http or https scheme"},
 	}
 
 	for _, tt := range tests {
@@ -156,6 +177,9 @@ func TestOAuthConfig_Validate(t *testing.T) {
 
 			if tt.wantErr {
 				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
 			} else {
 				assert.NoError(t, err)
 			}
@@ -165,13 +189,16 @@ func TestOAuthConfig_Validate(t *testing.T) {
 
 func TestFrontendConfig_Validate(t *testing.T) {
 	tests := []struct {
-		name    string
-		url     string
-		wantErr bool
+		name        string
+		url         string
+		wantErr     bool
+		errContains string
 	}{
-		{name: "valid URL", url: "http://localhost:3000", wantErr: false},
+		{name: "valid HTTP URL", url: "http://localhost:3000", wantErr: false},
 		{name: "valid HTTPS URL", url: "https://example.com", wantErr: false},
-		{name: "invalid URL", url: "://invalid", wantErr: true},
+		{name: "invalid URL format", url: "://invalid", wantErr: true, errContains: "invalid frontend URL"},
+		{name: "invalid scheme - ftp", url: "ftp://example.com", wantErr: true, errContains: "must use http or https scheme"},
+		{name: "no scheme", url: "localhost:3000", wantErr: true, errContains: "must use http or https scheme"},
 	}
 
 	for _, tt := range tests {
@@ -184,6 +211,9 @@ func TestFrontendConfig_Validate(t *testing.T) {
 
 			if tt.wantErr {
 				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
 			} else {
 				assert.NoError(t, err)
 			}
@@ -192,31 +222,17 @@ func TestFrontendConfig_Validate(t *testing.T) {
 }
 
 func TestLoad_Success(t *testing.T) {
-	// 環境変数を設定
-	os.Setenv("POSTGRES_HOST", "localhost")
-	os.Setenv("POSTGRES_PORT", "5432")
-	os.Setenv("POSTGRES_DB", "testdb")
-	os.Setenv("POSTGRES_USER", "user")
-	os.Setenv("POSTGRES_PASSWORD", "pass")
-	os.Setenv("REDIS_HOST", "localhost")
-	os.Setenv("REDIS_PORT", "6379")
-	os.Setenv("GOOGLE_CLIENT_ID", "client")
-	os.Setenv("GOOGLE_CLIENT_SECRET", "secret")
-	os.Setenv("OAUTH_CALLBACK_URL", "http://localhost:4000/callback")
-
-	defer func() {
-		// クリーンアップ
-		os.Unsetenv("POSTGRES_HOST")
-		os.Unsetenv("POSTGRES_PORT")
-		os.Unsetenv("POSTGRES_DB")
-		os.Unsetenv("POSTGRES_USER")
-		os.Unsetenv("POSTGRES_PASSWORD")
-		os.Unsetenv("REDIS_HOST")
-		os.Unsetenv("REDIS_PORT")
-		os.Unsetenv("GOOGLE_CLIENT_ID")
-		os.Unsetenv("GOOGLE_CLIENT_SECRET")
-		os.Unsetenv("OAUTH_CALLBACK_URL")
-	}()
+	// 環境変数を設定（t.Setenvを使用して自動クリーンアップ）
+	t.Setenv("POSTGRES_HOST", "localhost")
+	t.Setenv("POSTGRES_PORT", "5432")
+	t.Setenv("POSTGRES_DB", "testdb")
+	t.Setenv("POSTGRES_USER", "user")
+	t.Setenv("POSTGRES_PASSWORD", "pass")
+	t.Setenv("REDIS_HOST", "localhost")
+	t.Setenv("REDIS_PORT", "6379")
+	t.Setenv("GOOGLE_CLIENT_ID", "client")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "secret")
+	t.Setenv("OAUTH_CALLBACK_URL", "http://localhost:4000/callback")
 
 	cfg, err := Load()
 
@@ -236,18 +252,16 @@ func TestLoad_MissingRequired(t *testing.T) {
 }
 
 func TestLoad_InvalidPort(t *testing.T) {
-	// 無効なポート番号を設定
-	os.Setenv("POSTGRES_HOST", "localhost")
-	os.Setenv("POSTGRES_PORT", "99999")
-	os.Setenv("POSTGRES_DB", "testdb")
-	os.Setenv("POSTGRES_USER", "user")
-	os.Setenv("POSTGRES_PASSWORD", "pass")
-	os.Setenv("REDIS_HOST", "localhost")
-	os.Setenv("GOOGLE_CLIENT_ID", "client")
-	os.Setenv("GOOGLE_CLIENT_SECRET", "secret")
-	os.Setenv("OAUTH_CALLBACK_URL", "http://localhost:4000/callback")
-
-	defer os.Clearenv()
+	// 無効なポート番号を設定（t.Setenvを使用して自動クリーンアップ）
+	t.Setenv("POSTGRES_HOST", "localhost")
+	t.Setenv("POSTGRES_PORT", "99999")
+	t.Setenv("POSTGRES_DB", "testdb")
+	t.Setenv("POSTGRES_USER", "user")
+	t.Setenv("POSTGRES_PASSWORD", "pass")
+	t.Setenv("REDIS_HOST", "localhost")
+	t.Setenv("GOOGLE_CLIENT_ID", "client")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "secret")
+	t.Setenv("OAUTH_CALLBACK_URL", "http://localhost:4000/callback")
 
 	_, err := Load()
 
