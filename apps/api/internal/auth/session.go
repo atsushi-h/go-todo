@@ -5,7 +5,8 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net/http"
-	"os"
+
+	"go-todo/internal/config"
 
 	"github.com/gorilla/sessions"
 	"github.com/rbcervilla/redisstore/v9"
@@ -27,12 +28,9 @@ type SessionManager struct {
 	store *redisstore.RedisStore
 }
 
-func NewSessionManager() (*SessionManager, error) {
+func NewSessionManager(redisConfig config.RedisConfig, cookieConfig config.CookieConfig) (*SessionManager, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr: fmt.Sprintf("%s:%s",
-			os.Getenv("REDIS_HOST"),
-			os.Getenv("REDIS_PORT"),
-		),
+		Addr: redisConfig.Address(),
 	})
 
 	if err := client.Ping(context.Background()).Err(); err != nil {
@@ -47,15 +45,12 @@ func NewSessionManager() (*SessionManager, error) {
 	// session_　プリフィックスを設定
 	store.KeyPrefix("session_")
 
-	// 環境変数でSecureフラグを制御（本番環境ではtrue）
-	isSecure := os.Getenv("COOKIE_SECURE") == "true"
-
 	// Cookieのオプションを設定
 	store.Options(sessions.Options{
 		Path:     "/",
 		MaxAge:   86400 * 7,
 		HttpOnly: true,
-		Secure:   isSecure,
+		Secure:   cookieConfig.Secure,
 		SameSite: http.SameSiteLaxMode,
 	})
 

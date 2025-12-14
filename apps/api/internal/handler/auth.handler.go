@@ -3,9 +3,9 @@ package handler
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"go-todo/internal/auth"
+	"go-todo/internal/config"
 	"go-todo/internal/mapper"
 	"go-todo/internal/service"
 
@@ -16,12 +16,14 @@ import (
 type AuthHandler struct {
 	userService    *service.UserService
 	sessionManager *auth.SessionManager
+	frontendURL    string
 }
 
-func NewAuthHandler(userService *service.UserService, sm *auth.SessionManager) *AuthHandler {
+func NewAuthHandler(userService *service.UserService, sm *auth.SessionManager, frontendConfig config.FrontendConfig) *AuthHandler {
 	return &AuthHandler{
 		userService:    userService,
 		sessionManager: sm,
+		frontendURL:    frontendConfig.URL,
 	}
 }
 
@@ -55,14 +57,8 @@ func (h *AuthHandler) Callback(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to save session")
 	}
 
-	// リダイレクト先のフロントエンドURLを環境変数から取得
-	frontendURL := os.Getenv("FRONTEND_URL")
-	if frontendURL == "" {
-		log.Printf("Server configuration error: FRONTEND_URL is not set")
-		return echo.NewHTTPError(http.StatusInternalServerError, "Server configuration error")
-	}
-
-	return c.Redirect(http.StatusTemporaryRedirect, frontendURL)
+	// フロントエンドURLにリダイレクト
+	return c.Redirect(http.StatusTemporaryRedirect, h.frontendURL)
 }
 
 func (h *AuthHandler) Logout(c echo.Context) error {

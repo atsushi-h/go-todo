@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"go-todo/internal/config"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +16,14 @@ func TestTxManager_RunInTx_Success(t *testing.T) {
 	t.Skip("Integration test - requires database")
 
 	ctx := context.Background()
-	pool, err := NewPool(ctx)
+	cfg := config.DatabaseConfig{
+		Host:     "localhost",
+		Port:     5432,
+		Database: "go_todo_db",
+		User:     "user",
+		Password: "pass",
+	}
+	pool, err := NewPool(ctx, cfg)
 	require.NoError(t, err)
 	defer pool.Close()
 
@@ -34,7 +43,14 @@ func TestTxManager_RunInTx_Rollback(t *testing.T) {
 	t.Skip("Integration test - requires database")
 
 	ctx := context.Background()
-	pool, err := NewPool(ctx)
+	cfg := config.DatabaseConfig{
+		Host:     "localhost",
+		Port:     5432,
+		Database: "go_todo_db",
+		User:     "user",
+		Password: "pass",
+	}
+	pool, err := NewPool(ctx, cfg)
 	require.NoError(t, err)
 	defer pool.Close()
 

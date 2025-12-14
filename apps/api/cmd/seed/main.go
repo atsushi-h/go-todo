@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"go-todo/db/sqlc"
+	"go-todo/internal/config"
 	"go-todo/internal/database"
 	"go-todo/internal/seed"
 )
@@ -18,8 +19,14 @@ func main() {
 
 	ctx := context.Background()
 
+	// 設定を読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("Failed to load configuration:", err)
+	}
+
 	// DB接続
-	pool, err := database.NewPool(ctx)
+	pool, err := database.NewPool(ctx, cfg.Database)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}

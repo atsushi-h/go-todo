@@ -6,6 +6,7 @@ import (
 
 	"go-todo/db/sqlc"
 	"go-todo/internal/auth"
+	"go-todo/internal/config"
 	"go-todo/internal/database"
 	"go-todo/internal/handler"
 	"go-todo/internal/router"
@@ -17,8 +18,14 @@ import (
 func main() {
 	ctx := context.Background()
 
+	// 環境変数から設定を読み込み
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("Failed to load configuration:", err)
+	}
+
 	// DB接続プールの初期化
-	pool, err := database.NewPool(ctx)
+	pool, err := database.NewPool(ctx, cfg.Database)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
@@ -34,14 +41,14 @@ func main() {
 	queries := sqlc.New(pool)
 
 	// SessionManagerを作成
-	sessionManager, err := auth.NewSessionManager()
+	sessionManager, err := auth.NewSessionManager(cfg.Redis, cfg.Cookie)
 	if err != nil {
 		log.Fatal("Failed to initialize session:", err)
 	}
 	log.Println("Session store initialized.")
 
 	// Gothicの初期化
-	auth.InitProviders()
+	auth.InitProviders(cfg.OAuth)
 	auth.InitGothic(sessionManager)
 
 	// サービスの初期化
@@ -50,7 +57,7 @@ func main() {
 
 	// ハンドラーの初期化
 	todoHandler := handler.NewTodoHandler(todoService)
-	authHandler := handler.NewAuthHandler(userService, sessionManager)
+	authHandler := handler.NewAuthHandler(userService, sessionManager, cfg.Frontend)
 
 	// APIHandlerの作成（StrictServerInterface実装）
 	apiHandler := handler.NewAPIHandler(todoHandler)
@@ -59,11 +66,11 @@ func main() {
 	e := echo.New()
 
 	// ルートを設定
-	router.SetupRoutes(e, apiHandler, authHandler, sessionManager)
+	router.SetupRoutes(e, apiHandler, authHandler, sessionManager, cfg.Frontend)
 
 	// サーバー起動
-	log.Println("Server starting on :4000...")
-	if err := e.Start(":4000"); err != nil {
+	log.Printf("Server starting on %s...", cfg.Server.Address())
+	if err := e.Start(cfg.Server.Address()); err != nil {
 		log.Fatal(err)
 	}
 }
