@@ -75,5 +75,5 @@ pnpm generate:api                   # Generate API client from OpenAPI spec (orv
 2. Run `make generate` to create `openapi.yaml` and Go server code
 3. Run `pnpm generate:api` in `apps/web` to generate TypeScript client
 
-### Pre-commit Hooks (lefthook)
-- Runs `pnpm lint` and `make test` before commit
+### Pre-push Hooks (lefthook)
+- Runs `make lint` and `make test` before push
