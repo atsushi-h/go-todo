@@ -1,6 +1,6 @@
-pre-commit:
+pre-push:
   commands:
     lint:
-      run: pnpm lint
+      run: make lint
     test:
       run: make test
