@@ -47,6 +47,9 @@ export function useAuth() {
       queryClient.setQueryData(getMeQueryKey, null)
       queryClient.invalidateQueries({ queryKey: getMeQueryKey })
     },
+    onError: (error) => {
+      console.error('Failed to delete account:', error)
+    },
   })
 
   const isAuthenticated = !!user && !error
