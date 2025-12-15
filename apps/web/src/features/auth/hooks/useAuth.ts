@@ -39,6 +39,19 @@ export function useAuth() {
     },
   })
 
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      await axiosInstance.delete('/users/me')
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(getMeQueryKey, null)
+      queryClient.invalidateQueries({ queryKey: getMeQueryKey })
+    },
+    onError: (error) => {
+      console.error('Failed to delete account:', error)
+    },
+  })
+
   const isAuthenticated = !!user && !error
 
   return {
@@ -47,6 +60,8 @@ export function useAuth() {
     isAuthenticated,
     logout: logoutMutation.mutate,
     isLoggingOut: logoutMutation.isPending,
+    deleteAccount: deleteAccountMutation.mutate,
+    isDeletingAccount: deleteAccountMutation.isPending,
   }
 }
 

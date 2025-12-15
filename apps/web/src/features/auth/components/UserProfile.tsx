@@ -1,9 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '../hooks/useAuth'
 import { LogoutButton } from './LogoutButton'
+import { DeleteAccountDialog } from './DeleteAccountDialog'
 
 interface UserProfileProps {
   className?: string
@@ -11,6 +14,7 @@ interface UserProfileProps {
 
 export function UserProfile({ className }: UserProfileProps) {
   const { user } = useAuth()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   if (!user) {
     return null
@@ -41,7 +45,12 @@ export function UserProfile({ className }: UserProfileProps) {
           Go to Todos
         </Link>
         <LogoutButton />
+        <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+          Delete Account
+        </Button>
       </div>
+
+      <DeleteAccountDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} />
     </div>
   )
 }
