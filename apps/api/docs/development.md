@@ -58,7 +58,7 @@ COOKIE_SECURE=false
 
 ### 3. atlas_dev データベースの作成
 
-Atlasの差分計算に必要な作業用データベースを作成します：
+Atlasの差分計算に必要な作業用データベースを作成します（詳細は「[7.7 atlas_dev データベースについて](#77-atlas_dev-データベースについて)」を参照）：
 
 ```bash
 make create-atlas-dev-db
@@ -170,6 +170,8 @@ make go-mod-tidy
 
 ## 新機能の追加
 
+このセクションでは、新しいAPIエンドポイントの追加、データベーススキーマの変更など、典型的な開発タスクの実践的な手順を説明します。
+
 ### 3.1 新しいAPIエンドポイントの追加
 
 完全なワークフローを、具体例を用いて説明します。
@@ -250,6 +252,15 @@ make generate
 [internal/handler/todo.handler.go](internal/handler/todo.handler.go) に新しいメソッドを追加します。
 
 ```go
+// 必要なインポートを追加
+import (
+    "context"
+    "go-todo/internal/auth"
+    "go-todo/internal/gen"
+    "go-todo/internal/mapper"
+    "go-todo/internal/service"
+)
+
 // ListTodosByPriority - 優先度別にTodoを取得
 func (h *TodoHandler) ListTodosByPriority(ctx context.Context, request gen.ListTodosByPriorityRequestObject) (gen.ListTodosByPriorityResponseObject, error) {
     userID, ok := auth.GetUserIDFromContext(ctx)
@@ -1297,6 +1308,9 @@ PostgreSQL
 | | `go test -short ./...` | 統合テストをスキップ |
 | **Lint** | `make lint` | staticcheck 実行 |
 | | `make cue-fmt` | CUEファイルフォーマット |
+| | `make cue-vet` | CUE定義の検証のみ実行 |
+| **ログ確認** | `docker logs -f go_todo_server` | サーバーログをリアルタイム表示 |
+| | `docker logs -f go_todo_db` | データベースログをリアルタイム表示 |
 | **シード** | `make seed` | シードデータ投入 |
 | | `make seed-fresh` | データ削除 + シード投入 |
 | **依存関係** | `make go-mod-tidy` | go mod tidy 実行 |
@@ -1365,7 +1379,39 @@ h1:def456... 20250125120000_add_priority.sql
 - マイグレーションファイルを手動編集した場合は `make migrate-hash` で再計算
 - チームメンバー間でマイグレーションの整合性を保証
 
-### 7.9 ベストプラクティス
+### 7.9 セキュリティのベストプラクティス
+
+#### 環境変数の管理
+
+1. **`.env` ファイルの取り扱い**
+   - `.env` ファイルは `.gitignore` に含めること（既に設定済み）
+   - 本番環境では環境変数を直接設定（`.env` ファイルを使用しない）
+   - シークレット情報は絶対にコミットしない
+
+2. **本番環境での設定**
+   - `COOKIE_SECURE=true` を必ず設定
+   - `POSTGRES_PASSWORD` などのシークレットは環境変数管理サービス（AWS Secrets Manager等）を使用
+
+#### Cookie設定
+
+本番環境では以下を確認：
+- `COOKIE_SECURE=true` - HTTPS接続でのみCookieを送信
+- `HttpOnly` 属性 - JavaScriptからのアクセスを防止（gorilla/sessionsで自動設定）
+- `SameSite` 属性 - CSRF攻撃対策（設定で調整可能）
+
+#### SQLインジェクション対策
+
+- **sqlcの使用**: パラメータ化クエリが自動的に適用されるため安全
+- **生のSQL実行は避ける**: 必ず sqlc を介してクエリを実行
+- **ユーザー入力の検証**: Handler層で適切にバリデーション
+
+#### OAuth認証
+
+- Google OAuth クライアントシークレットは厳重に管理
+- コールバックURLは本番環境のドメインを正確に設定
+- 開発環境と本番環境で異なるOAuthアプリケーションを使用推奨
+
+### 7.10 ベストプラクティス
 
 #### スキーマ管理
 
@@ -1406,7 +1452,7 @@ h1:def456... 20250125120000_add_priority.sql
    - 生成されたファイルもGitにコミット
    - チームメンバー全員が同じコードベースを共有
 
-### 7.10 関連リンク
+### 7.11 関連リンク
 
 - **Atlas**: [Atlas Documentation](https://atlasgo.io/docs)
 - **sqlc**: [sqlc Documentation](https://docs.sqlc.dev/)
