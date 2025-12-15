@@ -55,13 +55,17 @@ pnpm generate:api                   # Generate API client from OpenAPI spec (orv
 - **Database**: PostgreSQL with pgx/v5, sqlc for type-safe queries
 - **Migrations**: Atlas (`atlas.hcl`, migrations in `db/migrations/`)
 - **Auth**: Google OAuth via Goth, Redis session storage
+- **Architecture**: Layered architecture with Dependency Inversion Principle
+  - Service layer depends on Repository interfaces (abstraction)
+  - sqlc-generated code implements Repository interfaces (concrete)
 - **Code structure**:
   - `internal/gen/` - Generated API code from OpenAPI
   - `internal/handler/` - HTTP handlers implementing generated interfaces
-  - `internal/service/` - Business logic with repository pattern
-  - `internal/mapper/` - DTO/entity mappers
+  - `internal/service/` - Business logic with repository interfaces
+  - `internal/mapper/` - DTO/entity mappers (DB ↔ API)
   - `db/sqlc/` - Generated database code
   - `openapi/cue/` - CUE source for OpenAPI spec
+- **Documentation**: See `apps/api/docs/architecture.md` for detailed design
 
 ### Frontend (apps/web)
 - **Framework**: Next.js 16 with App Router
