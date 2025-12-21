@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": ".",
+			"name": "🌍 Root"
+		},
+		{
+			"path": "./docs",
+			"name": "📚 Docs"
+		},
+			{
+			"path": "./apps/api/",
+			"name": "🚀 Go Backend"
+		},
+		{
+			"path": "./apps/web/",
+			"name": "💻 Next.js Frontend"
+		}
+	]
+}
