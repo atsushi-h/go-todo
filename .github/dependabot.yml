@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "00:00"
+      time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
     labels:
@@ -30,7 +30,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "00:00"
+      time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 10
     labels:
@@ -75,7 +75,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "00:00"
+      time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 10
     labels:
@@ -116,7 +116,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "00:00"
+      time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
     labels:
@@ -135,7 +135,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "00:00"
+      time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
     labels:
@@ -154,7 +154,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "00:00"
+      time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
     labels:
