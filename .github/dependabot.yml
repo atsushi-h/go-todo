@@ -4,8 +4,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
@@ -28,8 +27,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/apps/web"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 10
@@ -73,8 +71,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/apps/api"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 10
@@ -86,7 +83,6 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-    versioning-strategy: increase
     groups:
       database:
         patterns:
@@ -114,8 +110,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
@@ -127,14 +122,12 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-    versioning-strategy: increase
 
   # Docker - apps/api/Dockerfile
   - package-ecosystem: "docker"
     directory: "/apps/api"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
@@ -146,14 +139,12 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-    versioning-strategy: increase
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
@@ -165,7 +156,6 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-    versioning-strategy: increase
     groups:
       github-actions-core:
         patterns:
