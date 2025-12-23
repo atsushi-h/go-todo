@@ -1,0 +1,109 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
+  status: {}
+
+jobs:
+  auto-merge:
+    # Only run for Dependabot PRs
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.state == 'open'
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Wait for CI checks to complete
+        id: wait-for-checks
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          MAX_WAIT=1800  # 30 minutes
+          WAIT_INTERVAL=30  # 30 seconds
+          ELAPSED=0
+
+          echo "Waiting for CI checks to complete for PR #${PR_NUMBER}..."
+
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            # Get all checks for this PR
+            CHECKS=$(gh pr checks $PR_NUMBER --json name,state,conclusion)
+
+            # Check if there are any checks
+            if [ "$CHECKS" = "[]" ]; then
+              echo "No CI checks found. Proceeding with merge."
+              echo "all_checks_passed=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            # Check for pending or in-progress checks
+            PENDING=$(echo "$CHECKS" | jq '[.[] | select(.state == "PENDING" or .state == "IN_PROGRESS")] | length')
+
+            if [ "$PENDING" -eq 0 ]; then
+              # All checks are complete, check if they passed
+              FAILED=$(echo "$CHECKS" | jq '[.[] | select(.conclusion != "SUCCESS" and .conclusion != "SKIPPED" and .conclusion != "NEUTRAL")] | length')
+
+              if [ "$FAILED" -eq 0 ]; then
+                echo "All CI checks passed!"
+                echo "$CHECKS" | jq -r '.[] | "  ✓ \(.name): \(.conclusion)"'
+                echo "all_checks_passed=true" >> $GITHUB_OUTPUT
+                exit 0
+              else
+                echo "Some CI checks failed:"
+                echo "$CHECKS" | jq -r '.[] | select(.conclusion != "SUCCESS" and .conclusion != "SKIPPED" and .conclusion != "NEUTRAL") | "  ✗ \(.name): \(.conclusion)"'
+                echo "all_checks_passed=false" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            fi
+
+            echo "Waiting for checks to complete... ($ELAPSED/$MAX_WAIT seconds)"
+            echo "$CHECKS" | jq -r '.[] | select(.state == "PENDING" or .state == "IN_PROGRESS") | "  ⏳ \(.name): \(.state)"'
+            sleep $WAIT_INTERVAL
+            ELAPSED=$((ELAPSED + WAIT_INTERVAL))
+          done
+
+          echo "Timeout waiting for CI checks to complete."
+          echo "all_checks_passed=false" >> $GITHUB_OUTPUT
+
+      - name: Enable auto-merge
+        if: steps.wait-for-checks.outputs.all_checks_passed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          echo "Enabling auto-merge for PR #${PR_NUMBER} with squash merge..."
+
+          gh pr merge $PR_NUMBER --auto --squash || {
+            echo "Failed to enable auto-merge. Checking if already merged..."
+            PR_STATE=$(gh pr view $PR_NUMBER --json state --jq '.state')
+            if [ "$PR_STATE" = "MERGED" ]; then
+              echo "PR is already merged."
+              exit 0
+            else
+              echo "Failed to enable auto-merge."
+              exit 1
+            fi
+          }
+
+          echo "✅ Auto-merge enabled. PR will be merged once all required checks pass."
+
+      - name: Comment on failure
+        if: steps.wait-for-checks.outputs.all_checks_passed == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          gh pr comment $PR_NUMBER --body "⚠️ Auto-merge skipped: CI checks did not pass or timed out. Please review manually."
