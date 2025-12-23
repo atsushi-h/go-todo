@@ -11,9 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.0
 
-      - uses: jdx/mise-action@v2.2.6
-        with:
-          experimental: true
+      - uses: jdx/mise-action@v3.5.1
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
