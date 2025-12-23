@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
-    "format": "biome format --write",
+    "lint:fix": "biome check --fix --unsafe",
     "generate:api": "orval --config ./src/api/orval.config.ts"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -61,7 +61,11 @@ export function DeleteAccountDialog({ open, onOpenChange }: DeleteAccountDialogP
           </div>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isDeletingAccount}>
+          <Button
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={isDeletingAccount}
+          >
             Cancel
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={isDeletingAccount}>
