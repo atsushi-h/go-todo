@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '../hooks/useAuth'
-import { LogoutButton } from './LogoutButton'
 import { DeleteAccountDialog } from './DeleteAccountDialog'
+import { LogoutButton } from './LogoutButton'
 
 interface UserProfileProps {
   className?: string
