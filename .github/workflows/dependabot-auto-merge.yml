@@ -19,6 +19,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPO: ${{ github.repository }}
 
     steps:
       - name: Enable auto-merge
@@ -26,14 +27,14 @@ jobs:
           echo "Enabling auto-merge for Dependabot PR #${PR_NUMBER}..."
 
           # Enable auto-merge with squash
-          if gh pr merge $PR_NUMBER --auto --squash; then
+          if gh pr merge $PR_NUMBER --auto --squash --repo $REPO; then
             echo "✅ Auto-merge enabled successfully."
             echo "PR will be automatically merged once all required checks pass."
           else
             echo "⚠️ Failed to enable auto-merge."
             echo "Checking PR status..."
 
-            PR_STATE=$(gh pr view $PR_NUMBER --json state,mergeable --jq '{state: .state, mergeable: .mergeable}')
+            PR_STATE=$(gh pr view $PR_NUMBER --repo $REPO --json state,mergeable --jq '{state: .state, mergeable: .mergeable}')
             echo "PR Status: $PR_STATE"
 
             # Check if already merged (with null safety)
@@ -47,7 +48,7 @@ jobs:
             MERGEABLE=$(echo "$PR_STATE" | jq -r '.mergeable // "UNKNOWN"')
             if [ "$MERGEABLE" = "CONFLICTING" ]; then
               echo "PR has merge conflicts."
-              gh pr comment $PR_NUMBER --body "⚠️ Cannot enable auto-merge: This PR has merge conflicts that need to be resolved."
+              gh pr comment $PR_NUMBER --repo $REPO --body "⚠️ Cannot enable auto-merge: This PR has merge conflicts that need to be resolved."
               exit 1
             fi
 
@@ -58,10 +59,10 @@ jobs:
         if: success()
         run: |
           # Check if comment already exists to avoid duplicates
-          EXISTING_COMMENT=$(gh pr view $PR_NUMBER --json comments --jq '.comments[] | select(.author.login == "github-actions" and (.body | contains("Auto-merge enabled"))) | .id')
+          EXISTING_COMMENT=$(gh pr view $PR_NUMBER --repo $REPO --json comments --jq '.comments[] | select(.author.login == "github-actions" and (.body | contains("Auto-merge enabled"))) | .id')
 
           if [ -z "$EXISTING_COMMENT" ]; then
-            gh pr comment $PR_NUMBER --body "🤖 Auto-merge enabled. This PR will be automatically merged once all required checks pass."
+            gh pr comment $PR_NUMBER --repo $REPO --body "🤖 Auto-merge enabled. This PR will be automatically merged once all required checks pass."
             echo "Comment added to PR #${PR_NUMBER}"
           else
             echo "Comment already exists on PR #${PR_NUMBER}, skipping duplicate"
