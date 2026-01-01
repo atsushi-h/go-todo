@@ -5,7 +5,7 @@ go 1.25.4
 require (
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/gorilla/sessions v1.4.0
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/jackc/pgx/v5 v5.8.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/markbates/goth v1.82.0
