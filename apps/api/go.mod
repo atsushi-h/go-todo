@@ -11,7 +11,7 @@ require (
 	github.com/markbates/goth v1.82.0
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/rbcervilla/redisstore/v9 v9.0.0
-	github.com/redis/go-redis/v9 v9.17.2
+	github.com/redis/go-redis/v9 v9.17.3
 	github.com/stretchr/testify v1.11.1
 )
 
